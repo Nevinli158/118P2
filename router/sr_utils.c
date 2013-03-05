@@ -30,6 +30,33 @@ uint8_t ip_protocol(uint8_t *buf) {
   return iphdr->ip_p;
 }
 
+uint8_t* build_packet(sr_ethernet_hdr_t *eth_hdr, int len, char *data) {
+	uint8_t* buf;
+	int packet_length;
+	int curr_length;
+	uint16_t checksum;
+	
+	packet_length = 14 + (sizeof(uint8_t) * len) + 2;
+	curr_length = 0;
+	buf = (uint8_t*) malloc (packet_length);
+	/* Dest MAC Addr */
+	memcpy (buf, eth_hdr->ether_dhost, ETHER_ADDR_LEN);
+	curr_length += ETHER_ADDR_LEN;
+	/* Source MAC Addr */
+	memcpy (buf + curr_length, eth_hdr->ether_shost, ETHER_ADDR_LEN);
+	curr_length += ETHER_ADDR_LEN;
+	/* Ethertype (ARP or IP) */
+	memcpy (buf + curr_length, eth_hdr->ether_type, 2);
+	curr_length += 2;
+	/* Data */
+	memcpy (buf + curr_length, data, len);
+	curr_length += len;
+	/* Checksum */
+	checksum = cksum (buf, curr_length);
+	memcpy (buf + curr_length, &checksum, 2);
+	
+	return buf;
+}
 
 /* Prints out formatted Ethernet address, e.g. 00:11:22:33:44:55 */
 void print_addr_eth(uint8_t *addr) {
