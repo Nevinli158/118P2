@@ -35,6 +35,18 @@ uint8_t ip_protocol(uint8_t *buf);
 
 uint8_t* build_packet(sr_ethernet_hdr_t *eth_hdr, int len, char *data);
 
+/*init functions are defined in sr_init_header.c */
+struct sr_icmp_hdr* init_sr_icmp_hdr(uint8_t icmp_type, uint8_t icmp_code, uint16_t icmp_sum);
+struct sr_icmp_t3_hdr* init_sr_icmp_t3_hdr(uint8_t icmp_type, uint8_t icmp_code, uint16_t icmp_sum,
+	uint16_t unused, uint16_t next_mtu, uint8_t data[]);
+struct sr_ip_hdr* init_sr_ip_hdr(unsigned int ip_hl, unsigned int ip_v, uint8_t ip_tos, uint16_t ip_len,
+    uint16_t ip_id, uint16_t ip_off, uint8_t ip_ttl, uint8_t ip_p, uint16_t ip_sum, uint32_t ip_src, 
+	uint32_t ip_dst);
+struct sr_ethernet_hdr* init_sr_ethernet_hdr(uint8_t  ether_dhost[], uint8_t ether_shost[], uint16_t ether_type);
+struct sr_arp_hdr* init_sr_arp_hdr(unsigned short ar_hrd, unsigned short ar_pro, unsigned char ar_hln,
+	unsigned char ar_pln, unsigned short ar_op, unsigned char ar_sha[], uint32_t ar_sip, unsigned char ar_tha[ETHER_ADDR_LEN],
+    uint32_t ar_tip);
+	
 void print_addr_eth(uint8_t *addr);
 void print_addr_ip(struct in_addr address);
 void print_addr_ip_int(uint32_t ip);

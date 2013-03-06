@@ -30,6 +30,15 @@ void sr_arpcache_sweepreqs(struct sr_instance *sr) {
 			/*For each packet depending on this ARP (sr_packet)*/
 			while(packet != NULL){
 				/*Get the packet's source IP. (parse sr_packet's buffer?)*/
+				struct sr_ethernet_hdr *packet_eth_hdr = (struct sr_ethernet_hdr*)packet->buf;
+				uint8_t  *ether_source = packet_eth_hdr->ether_shost;
+				uint8_t* icmp_failed_pack = NULL;
+				sr_send_packet(sr, icmp_failed_pack, packet->len, packet->iface);
+				/*int sr_send_packet(struct sr_instance* sr ,
+                         uint8_t* buf  ,
+                         unsigned int len,
+                         const char* iface )*/
+				
 				/*Construct a ICMP failed packet. (we have to do ourselves?)*/
 				/*Send the packet to the source IP. (sr_send_packet)*/
 				packet = packet->next;
