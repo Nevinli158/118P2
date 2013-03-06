@@ -49,9 +49,9 @@ sr_arp_hdr_t* parse_arp_packet(uint8_t *buf);
 
 /*init functions are defined in sr_init_header.c */
 struct sr_icmp_hdr* init_sr_icmp_hdr(uint8_t icmp_type, uint8_t icmp_code, uint16_t icmp_sum);
-struct sr_icmp_t3_hdr* init_sr_icmp_t3_hdr(uint8_t icmp_type, uint8_t icmp_code, uint8_t* ip_packet);
-struct sr_ip_hdr* init_sr_ip_hdr(unsigned int ip_hl, unsigned int ip_v, uint8_t ip_tos, uint16_t ip_len,
-    uint16_t ip_id, uint16_t ip_off, uint8_t ip_ttl, uint8_t ip_p, uint16_t ip_sum, uint32_t ip_src, 
+struct sr_icmp_t3_hdr* init_sr_icmp_t3_hdr(uint8_t icmp_type, uint8_t icmp_code, uint8_t* failed_ip_packet);
+struct sr_ip_hdr* init_sr_ip_hdr(uint8_t ip_tos, uint16_t ip_len,
+    uint16_t ip_id, uint16_t ip_off, uint8_t ip_p, uint32_t ip_src, 
 	uint32_t ip_dst);
 struct sr_ethernet_hdr* init_sr_ethernet_hdr(uint8_t ether_dhost[], uint8_t ether_shost[], uint16_t ether_type);
 struct sr_arp_hdr* init_sr_arp_hdr(unsigned short ar_hrd, unsigned short ar_pro, unsigned char ar_hln,

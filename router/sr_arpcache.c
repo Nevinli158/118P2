@@ -10,6 +10,7 @@
 #include "sr_router.h"
 #include "sr_if.h"
 #include "sr_protocol.h"
+#include "sr_utils.h"
 
 /* 
   This function gets called every second. For each request sent out, we keep
@@ -25,27 +26,41 @@ void sr_arpcache_sweepreqs(struct sr_instance *sr) {
 			req->times_sent++;
 			req = req->next;
 		} else { /*If the request was sent 5 times: */
-			struct sr_packet *packet = req->packets;
+			struct sr_packet *request_pack = req->packets;
 			struct sr_arpreq *temp = req;
 			/*For each packet depending on this ARP (sr_packet)*/
-			while(packet != NULL){
+			while(request_pack != NULL){
 				/*Get the packet's source IP. (parse sr_packet's buffer?)*/
-				struct sr_ethernet_hdr *packet_eth_hdr = (struct sr_ethernet_hdr*)packet->buf;
-				uint8_t* ether_source = packet_eth_hdr->ether_shost;
-				uint8_t* ip_packet = NULL;
-				struct sr_icmp_t3_hdr* icmp_failed_hdr = init_sr_icmp_t3_hdr(3, 1, ip_packet);
-				uint8_t* icmp_failed_pack = build_icmp_t3_packet(icmp_failed_hdr);
-				sr_send_packet(sr, icmp_failed_pack, sizeof(sr_icmp_t3_hdr), packet->iface);
-				free(icmp_failed_hdr);
-				free(icmp_failed_pack);
-				/*int sr_send_packet(struct sr_instance* sr ,
-                         uint8_t* buf  ,
-                         unsigned int len,
-                         const char* iface )*/
+				uint8_t* failed_ip_pack;
+				struct sr_ethernet_hdr *failed_pack_eth_hdr;
+				uint8_t* failed_pack_ether_source;
+				struct sr_icmp_t3_hdr* icmp_hdr;
+				struct sr_ip_hdr* ip_hdr;
+				struct sr_ethernet_hdr* eth_hdr;
+				uint8_t* icmp_pack, ip_pack, eth_pack;
+				
+				failed_pack_eth_hdr = parse_eth_frame(request_pack->buf, failed_ip_pack);
+				failed_pack_ether_source = failed_pack_eth_hdr->ether_shost;
+				icmp_hdr = init_sr_icmp_t3_hdr(3, 1, failed_ip_pack);
+				icmp_pack = build_icmp_t3_packet(icmp_hdr);
+				/*ip_hdr = init_sr_ip_hdr(uint8_t ip_tos, uint16_t ip_len, uint16_t ip_id, uint16_t ip_off, uint8_t ip_p, uint32_t ip_src, uint32_t ip_dst);*/
+				ip_pack = build_ip_packet(ip_hdr, icmp_pack, sizeof(struct sr_icmp_t3_hdr));
+				/*eth_hdr = init_sr_ethernet_hdr(failed_pack_ether_source,own MAC address?,0x0800);*/
+				eth_pack = build_eth_frame(eth_hdr, ip_pack, sizeof(struct sr_icmp_t3_hdr)+sizeof(struct sr_ip_hdr));
+				sr_send_packet(sr, eth_pack, 
+				sizeof(struct sr_icmp_t3_hdr)+sizeof(struct sr_ip_hdr)+sizeof(struct sr_ethernet_hdr), request_pack->iface);
+				free((void*)icmp_hdr);
+				free((void*)icmp_pack);
+				free((void*)ip_pack);
+				free((void*)eth_pack);
+				free((void*)icmp_hdr);
+				free((void*)ip_hdr);
+				free((void*)eth_hdr);
+
 				
 				/*Construct a ICMP failed packet. (we have to do ourselves?)*/
 				/*Send the packet to the source IP. (sr_send_packet)*/
-				packet = packet->next;
+				request_pack = request_pack->next;
 			}
 			req = req->next;
 			/*remove the request from the queue*/

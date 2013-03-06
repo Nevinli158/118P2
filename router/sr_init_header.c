@@ -3,6 +3,7 @@
 #include <string.h>
 #include "sr_protocol.h"
 #include "sr_utils.h"
+#include "sr_router.h"
 
 
 struct sr_icmp_hdr* init_sr_icmp_hdr(uint8_t icmp_type, uint8_t icmp_code, uint16_t icmp_sum){
@@ -13,36 +14,37 @@ struct sr_icmp_hdr* init_sr_icmp_hdr(uint8_t icmp_type, uint8_t icmp_code, uint1
 	return hdr;
 }
 
-struct sr_icmp_t3_hdr* init_sr_icmp_t3_hdr(uint8_t icmp_type, uint8_t icmp_code, uint8_t* ip_packet){
+struct sr_icmp_t3_hdr* init_sr_icmp_t3_hdr(uint8_t icmp_type, uint8_t icmp_code, uint8_t* failed_ip_packet){
 	struct sr_icmp_t3_hdr* hdr = malloc(sizeof(struct sr_icmp_t3_hdr));
 	hdr->icmp_type = icmp_type;
 	hdr->icmp_code = icmp_code;
 	hdr->icmp_sum = 0;
 	hdr->unused = 0;
-	hdr->next_mtu = 0; //only used for code 4, which is out of scope of this assignment.
+	hdr->next_mtu = 0; /*only used for code 4, which is out of scope of this assignment. */
 	if(sizeof(struct sr_ip_hdr)+8 != ICMP_DATA_SIZE){
 		Debug("init_sr_icmp_t3_hdr: sizeof(struct sr_ip_hdr)+8 != ICMP_DATA_SIZE");
 	}
-	memcpy(hdr->data,data,sizeof(struct sr_ip_hdr));//Data has IP header + 1st 8 bytes of payload
-	memcpy((hdr->data)+sizeof(struct sr_ip_hdr),data,8);
+	memcpy(hdr->data,failed_ip_packet,sizeof(struct sr_ip_hdr));/*Data has IP header + 1st 8 bytes of payload */
+	memcpy((hdr->data)+sizeof(struct sr_ip_hdr),failed_ip_packet,8);
+	hdr->icmp_sum = cksum((void*)hdr, sizeof(struct sr_icmp_t3_hdr));
 	return hdr;
 }
 
-struct sr_ip_hdr* init_sr_ip_hdr(unsigned int ip_hl, unsigned int ip_v, uint8_t ip_tos, uint16_t ip_len,
-    uint16_t ip_id, uint16_t ip_off, uint8_t ip_ttl, uint8_t ip_p, uint16_t ip_sum, uint32_t ip_src, 
-	uint32_t ip_dst){
+struct sr_ip_hdr* init_sr_ip_hdr(uint8_t ip_tos, uint16_t ip_len,
+    uint16_t ip_id, uint16_t ip_off, uint8_t ip_p, uint32_t ip_src, uint32_t ip_dst){
 	struct sr_ip_hdr* hdr = malloc(sizeof(struct sr_ip_hdr));
-    hdr->ip_hl = ip_hl;		/* header length */
-    hdr->ip_v = ip_v;		/* version */
+    hdr->ip_hl = 5;		/* header length */
+    hdr->ip_v = 4;		/* version */
     hdr->ip_tos = ip_tos;			/* type of service */
     hdr->ip_len = ip_len;			/* total length */
     hdr->ip_id = ip_id;			/* identification */
     hdr->ip_off = ip_off;			/* fragment offset field */
-    hdr->ip_ttl = ip_ttl;			/* time to live */
+    hdr->ip_ttl = 64;			/* time to live */
     hdr->ip_p = ip_p;			/* protocol */
-    hdr->ip_sum = ip_sum;			/* checksum */
+    hdr->ip_sum = 0;			/* checksum */
     hdr->ip_src = ip_src;
 	hdr->ip_dst = ip_dst;	/* source and dest address */
+	hdr->ip_sum = cksum((void*)hdr, sizeof(struct sr_ip_hdr));
 	return hdr;
 }
 
