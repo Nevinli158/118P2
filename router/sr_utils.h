@@ -33,7 +33,11 @@ uint16_t cksum(const void *_data, int len);
 uint16_t ethertype(uint8_t *buf);
 uint8_t ip_protocol(uint8_t *buf);
 
-uint8_t* build_packet(sr_ethernet_hdr_t *eth_hdr, int len, char *data);
+uint8_t* build_eth_frame(sr_ethernet_hdr_t *eth_hdr, char *data, int datalen);
+uint8_t* build_ip_packet(sr_ip_hdr_t *ip_hdr, char *data, int datalen);
+uint8_t* build_icmp_packet(sr_icmp_hdr_t *icmp_hdr);
+uint8_t* build_icmp_t3_packet(sr_icmp_t3_hdr_t *icmp_t3_hdr, sr_ip_hdr_t *ip_hdr, char *data);
+uint8_t* build_arp_packet(sr_arp_hdr_t *arp_hdr);
 
 /*init functions are defined in sr_init_header.c */
 struct sr_icmp_hdr* init_sr_icmp_hdr(uint8_t icmp_type, uint8_t icmp_code, uint16_t icmp_sum);
