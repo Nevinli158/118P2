@@ -17,33 +17,28 @@
   See the comments in the header file for an idea of what it should look like.
 */
 void sr_arpcache_sweepreqs(struct sr_instance *sr) { 
-	struct sr_arpreq *req = sr->cache->requests;
-	//For each entry in sr->cache->requests (linked list of requests)
+	struct sr_arpreq *req = sr->cache.requests;
+	/*For each entry in sr->cache->requests (linked list of requests)*/
 	while(req != NULL){
 		if(req->times_sent < 5){
-			//If the request was sent less than 5 times, send the request. (function is such that a request is sent every minute)
+			/*If the request was sent less than 5 times, send the request. (function is such that a request is sent every minute)*/
 			req->times_sent++;
 			req = req->next;
-		} else { //If the request was sent 5 times: 
+		} else { /*If the request was sent 5 times: */
 			struct sr_packet *packet = req->packets;
 			struct sr_arpreq *temp = req;
-			//For each packet depending on this ARP (sr_packet)
+			/*For each packet depending on this ARP (sr_packet)*/
 			while(packet != NULL){
-				//Get the packet's source IP. (parse sr_packet's buffer?)
-				//Construct a ICMP failed packet. (we have to do ourselves?)
-				//Send the packet to the source IP. (sr_send_packet)
+				/*Get the packet's source IP. (parse sr_packet's buffer?)*/
+				/*Construct a ICMP failed packet. (we have to do ourselves?)*/
+				/*Send the packet to the source IP. (sr_send_packet)*/
 				packet = packet->next;
 			}
 			req = req->next;
-			//remove the request from the queue
-			sr_arpreq_destroy(sr->cache, temp);
+			/*remove the request from the queue*/
+			sr_arpreq_destroy(&(sr->cache), temp);
 		}
 	}
-    
-		
-	
-			
-			
 }
 
 /* You should not need to touch the rest of this code. */
