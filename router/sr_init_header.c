@@ -13,13 +13,13 @@ struct sr_icmp_hdr* init_sr_icmp_hdr(uint8_t icmp_type, uint8_t icmp_code, uint1
 	return hdr;
 }
 
-struct sr_icmp_t3_hdr* init_sr_icmp_t3_hdr(uint8_t icmp_type, uint8_t icmp_code, uint16_t next_mtu, uint8_t data[]){
+struct sr_icmp_t3_hdr* init_sr_icmp_t3_hdr(uint8_t icmp_type, uint8_t icmp_code, uint8_t* ip_packet){
 	struct sr_icmp_t3_hdr* hdr = malloc(sizeof(struct sr_icmp_t3_hdr));
 	hdr->icmp_type = icmp_type;
 	hdr->icmp_code = icmp_code;
 	hdr->icmp_sum = 0;
 	hdr->unused = 0;
-	hdr->next_mtu = next_mtu;
+	hdr->next_mtu = 0; //only used for code 4, which is out of scope of this assignment.
 	if(sizeof(struct sr_ip_hdr)+8 != ICMP_DATA_SIZE){
 		Debug("init_sr_icmp_t3_hdr: sizeof(struct sr_ip_hdr)+8 != ICMP_DATA_SIZE");
 	}

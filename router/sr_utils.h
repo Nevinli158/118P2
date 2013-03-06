@@ -40,15 +40,15 @@ uint8_t* build_icmp_packet(sr_icmp_hdr_t *icmp_hdr);
 uint8_t* build_icmp_t3_packet(sr_icmp_t3_hdr_t *icmp_t3_hdr);
 uint8_t* build_arp_packet(sr_arp_hdr_t *arp_hdr);
 
-sr_ethernet_hdr_t* parse_eth_frame(uint8_t *buf, char *payload, int len);
-sr_ip_hdr_t* parse_ip_packet(uint8_t *buf, char *payload, int len);
+sr_ethernet_hdr_t* parse_eth_frame(uint8_t *buf, int len);
+sr_ip_hdr_t* parse_ip_packet(uint8_t *buf, int len);
 sr_icmp_hdr_t* parse_icmp_packet(uint8_t *buf);
 sr_icmp_t3_hdr_t* parse_icmp_t3_packet(uint8_t *buf);
 sr_arp_hdr_t* parse_arp_packet(sr_arp_hdr_t *arp_hdr);
 
 /*init functions are defined in sr_init_header.c */
 struct sr_icmp_hdr* init_sr_icmp_hdr(uint8_t icmp_type, uint8_t icmp_code, uint16_t icmp_sum);
-struct sr_icmp_t3_hdr* init_sr_icmp_t3_hdr(uint8_t icmp_type, uint8_t icmp_code, uint16_t next_mtu, uint8_t data[]);
+struct sr_icmp_t3_hdr* init_sr_icmp_t3_hdr(uint8_t icmp_type, uint8_t icmp_code, uint8_t* ip_packet);
 struct sr_ip_hdr* init_sr_ip_hdr(unsigned int ip_hl, unsigned int ip_v, uint8_t ip_tos, uint16_t ip_len,
     uint16_t ip_id, uint16_t ip_off, uint8_t ip_ttl, uint8_t ip_p, uint16_t ip_sum, uint32_t ip_src, 
 	uint32_t ip_dst);
