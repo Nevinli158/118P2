@@ -79,6 +79,8 @@ void sr_handlepacket(struct sr_instance* sr,
   printf("*** -> Received packet of length %d \n",len);
 
   /* fill in code here */
+  
+  /* function for comparing checksum before parsing packet */
 
 }/* end sr_ForwardPacket */
 
