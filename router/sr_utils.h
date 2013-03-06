@@ -36,8 +36,14 @@ uint8_t ip_protocol(uint8_t *buf);
 uint8_t* build_eth_frame(sr_ethernet_hdr_t *eth_hdr, char *data, int datalen);
 uint8_t* build_ip_packet(sr_ip_hdr_t *ip_hdr, char *data, int datalen);
 uint8_t* build_icmp_packet(sr_icmp_hdr_t *icmp_hdr);
-uint8_t* build_icmp_t3_packet(sr_icmp_t3_hdr_t *icmp_t3_hdr, sr_ip_hdr_t *ip_hdr, char *data);
+uint8_t* build_icmp_t3_packet(sr_icmp_t3_hdr_t *icmp_t3_hdr);
 uint8_t* build_arp_packet(sr_arp_hdr_t *arp_hdr);
+
+sr_ethernet_hdr_t* parse_eth_frame(uint8_t *buf, int len);
+sr_ip_hdr_t* parse_ip_packet(uint8_t *buf, int len);
+sr_icmp_hdr_t* parse_icmp_header(uint8_t *buf);
+sr_icmp_t3_hdr_t* parse_icmp_t3_packet(uint8_t *buf);
+sr_arp_hdr_t* parse_arp_packet(sr_arp_hdr_t *arp_hdr);
 
 void print_addr_eth(uint8_t *addr);
 void print_addr_ip(struct in_addr address);
