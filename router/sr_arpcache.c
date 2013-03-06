@@ -32,7 +32,8 @@ void sr_arpcache_sweepreqs(struct sr_instance *sr) {
 				/*Get the packet's source IP. (parse sr_packet's buffer?)*/
 				struct sr_ethernet_hdr *packet_eth_hdr = (struct sr_ethernet_hdr*)packet->buf;
 				uint8_t  *ether_source = packet_eth_hdr->ether_shost;
-				uint8_t* icmp_failed_pack = NULL;
+				uint8_t* icmp_failed_pack = init_sr_icmp_t3_hdr(3, 1, uint16_t next_mtu, );
+				Destination host unreachable (type 3, code 1)
 				sr_send_packet(sr, icmp_failed_pack, packet->len, packet->iface);
 				/*int sr_send_packet(struct sr_instance* sr ,
                          uint8_t* buf  ,
