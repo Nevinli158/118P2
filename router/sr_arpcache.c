@@ -23,6 +23,18 @@ void sr_arpcache_sweepreqs(struct sr_instance *sr) {
 	while(req != NULL){
 		if(req->times_sent < 5){
 			/*If the request was sent less than 5 times, send the request. (function is such that a request is sent every minute)*/
+			uint8_t *arp_pack, *eth_pack;
+			struct sr_packet *request_pack = req->packets;
+			struct sr_if* iface = sr_get_interface(sr,request_pack->iface);
+			unsigned char buf[6]; 
+			int i;
+			for(i = 0; i < 6; i++){
+				buf[i] = 0xf;
+			}
+			if(iface == 0){ Debug("sr_arpcache_sweepreqs<5: get_interface returned null"); }
+			arp_pack = build_arp_packet(arp_op_request, iface->addr, iface->ip, buf, req->ip);
+			eth_pack = build_eth_frame(buf,iface->addr,ethertype_arp, arp_pack, sizeof(struct sr_arp_hdr));
+			sr_send_packet(sr, eth_pack, sizeof(struct sr_arp_hdr)+sizeof(struct sr_ethernet_hdr), request_pack->iface);
 			req->times_sent++;
 			req = req->next;
 		} else { /*If the request was sent 5 times: */
@@ -44,7 +56,7 @@ void sr_arpcache_sweepreqs(struct sr_instance *sr) {
 				icmp_pack = build_icmp_t3_packet(3, 1, failed_ip_pack);
 				ip_pack = build_ip_packet(0, 0, ip_protocol_icmp, iface->ip, failed_pack_ip_hdr->ip_src, icmp_pack, sizeof(struct sr_icmp_t3_hdr));
 				if(iface == 0){ Debug("sr_arpcache_sweepreqs: get_interface returned null"); }
-				eth_pack = build_eth_frame(failed_pack_eth_hdr->ether_shost,iface->addr,0x0800, ip_pack, 
+				eth_pack = build_eth_frame(failed_pack_eth_hdr->ether_shost,iface->addr,ethertype_ip, ip_pack, 
 									sizeof(struct sr_icmp_t3_hdr)+sizeof(struct sr_ip_hdr));
 				
 				sr_send_packet(sr, eth_pack, 
