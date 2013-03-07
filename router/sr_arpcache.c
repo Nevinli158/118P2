@@ -43,7 +43,7 @@ void sr_arpcache_sweepreqs(struct sr_instance *sr) {
 				failed_pack_ether_source = failed_pack_eth_hdr->ether_shost;
 				icmp_hdr = init_sr_icmp_t3_hdr(3, 1, failed_ip_pack);
 				icmp_pack = build_icmp_t3_packet(icmp_hdr);
-				/*ip_hdr = init_sr_ip_hdr(uint8_t ip_tos, uint16_t ip_len, uint16_t ip_id, uint16_t ip_off, uint8_t ip_p, uint32_t ip_src, uint32_t ip_dst);*/
+				/*ip_hdr = init_sr_ip_hdr(uint16_t ip_len, uint16_t ip_id, uint16_t ip_off, 1, uint32_t ip_src, uint32_t ip_dst);*/
 				ip_pack = build_ip_packet(ip_hdr, icmp_pack, sizeof(struct sr_icmp_t3_hdr));
 				/*eth_hdr = init_sr_ethernet_hdr(failed_pack_ether_source,own MAC address?,0x0800);*/
 				eth_pack = build_eth_frame(eth_hdr, ip_pack, sizeof(struct sr_icmp_t3_hdr)+sizeof(struct sr_ip_hdr));

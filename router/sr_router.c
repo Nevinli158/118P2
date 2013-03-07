@@ -71,6 +71,8 @@ void sr_handlepacket(struct sr_instance* sr,
         unsigned int len,
         char* interface/* lent */)
 {
+  sr_ethernet_hdr* eth_frame;
+  uint8_t* payload;
   /* REQUIRES */
   assert(sr);
   assert(packet);
@@ -81,6 +83,13 @@ void sr_handlepacket(struct sr_instance* sr,
   /* fill in code here */
   
   /* function for comparing checksum before parsing packet */
+  eth_frame = parse_eth_frame(packet, payload);
+  if(eth_frame->ether_type == 0x0800){  //IP
+	sr_ip_hdr* ip_hdr = parse_ip_packet(payload, payload);
+	if()
+  } else if(eth_frame->ether_type == 0x0806){//ARP
+  
+  }
 
 }/* end sr_ForwardPacket */
 

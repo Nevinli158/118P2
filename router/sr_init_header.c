@@ -30,12 +30,12 @@ struct sr_icmp_t3_hdr* init_sr_icmp_t3_hdr(uint8_t icmp_type, uint8_t icmp_code,
 	return hdr;
 }
 
-struct sr_ip_hdr* init_sr_ip_hdr(uint8_t ip_tos, uint16_t ip_len,
+struct sr_ip_hdr* init_sr_ip_hdr(uint16_t ip_len,
     uint16_t ip_id, uint16_t ip_off, uint8_t ip_p, uint32_t ip_src, uint32_t ip_dst){
 	struct sr_ip_hdr* hdr = malloc(sizeof(struct sr_ip_hdr));
     hdr->ip_hl = 5;		/* header length */
     hdr->ip_v = 4;		/* version */
-    hdr->ip_tos = ip_tos;			/* type of service */
+    hdr->ip_tos = 0;			/* type of service */
     hdr->ip_len = ip_len;			/* total length */
     hdr->ip_id = ip_id;			/* identification */
     hdr->ip_off = ip_off;			/* fragment offset field */
