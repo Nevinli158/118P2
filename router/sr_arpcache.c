@@ -30,25 +30,32 @@ void sr_arpcache_sweepreqs(struct sr_instance *sr) {
 			struct sr_arpreq *temp = req;
 			/*For each packet depending on this ARP (sr_packet)*/
 			while(request_pack != NULL){
-				/*Get the packet's source IP. (parse sr_packet's buffer?)*/
-				uint8_t* failed_ip_pack;
-				struct sr_ethernet_hdr *failed_pack_eth_hdr;
-				uint8_t* failed_pack_ether_source;
-				struct sr_icmp_t3_hdr* icmp_hdr;
-				struct sr_ip_hdr* ip_hdr;
-				struct sr_ethernet_hdr* eth_hdr;
-				uint8_t* icmp_pack, ip_pack, eth_pack;
+				uint8_t* failed_ip_pack = NULL;/*The client's packet that could not be sent*/
+				struct sr_ethernet_hdr *failed_pack_eth_hdr = NULL; 
+				uint8_t* failed_pack_ether_source = NULL;
+				struct sr_ip_hdr* failed_pack_ip_hdr = NULL;
+				uint8_t* failed_ip_payload = NULL;
+				struct sr_icmp_t3_hdr* icmp_hdr = NULL;/*The ICMP failed message to be sent back to client*/
+				struct sr_ip_hdr* ip_hdr = NULL;
+				struct sr_ethernet_hdr* eth_hdr = NULL;
+				uint8_t* icmp_pack, *ip_pack, *eth_pack;
+				struct sr_if* iface = sr_get_interface(sr,request_pack->iface);
 				
 				failed_pack_eth_hdr = parse_eth_frame(request_pack->buf, failed_ip_pack);
 				failed_pack_ether_source = failed_pack_eth_hdr->ether_shost;
+				failed_pack_ip_hdr = parse_ip_packet(failed_ip_pack, failed_ip_payload);
+				
 				icmp_hdr = init_sr_icmp_t3_hdr(3, 1, failed_ip_pack);
 				icmp_pack = build_icmp_t3_packet(icmp_hdr);
-				/*ip_hdr = init_sr_ip_hdr(uint16_t ip_len, uint16_t ip_id, uint16_t ip_off, 1, uint32_t ip_src, uint32_t ip_dst);*/
+				ip_hdr = init_sr_ip_hdr(sizeof(struct sr_icmp_t3_hdr)+sizeof(struct sr_ip_hdr), 0, 0, 1, iface->ip, failed_pack_ip_hdr->ip_src);
 				ip_pack = build_ip_packet(ip_hdr, icmp_pack, sizeof(struct sr_icmp_t3_hdr));
-				/*eth_hdr = init_sr_ethernet_hdr(failed_pack_ether_source,own MAC address?,0x0800);*/
+				if(iface == 0){ Debug("sr_arpcache_sweepreqs: get_interface returned null"); }
+				eth_hdr = init_sr_ethernet_hdr(failed_pack_ether_source,iface->addr,0x0800);
 				eth_pack = build_eth_frame(eth_hdr, ip_pack, sizeof(struct sr_icmp_t3_hdr)+sizeof(struct sr_ip_hdr));
+				
 				sr_send_packet(sr, eth_pack, 
 				sizeof(struct sr_icmp_t3_hdr)+sizeof(struct sr_ip_hdr)+sizeof(struct sr_ethernet_hdr), request_pack->iface);
+				
 				free((void*)icmp_hdr);
 				free((void*)icmp_pack);
 				free((void*)ip_pack);
