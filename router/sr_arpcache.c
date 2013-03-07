@@ -36,6 +36,9 @@ void sr_arpcache_sweepreqs(struct sr_instance *sr) {
 			eth_pack = build_eth_frame(buf,iface->addr,ethertype_arp, arp_pack, sizeof(struct sr_arp_hdr));
 			sr_send_packet(sr, eth_pack, sizeof(struct sr_arp_hdr)+sizeof(struct sr_ethernet_hdr), request_pack->iface);
 			req->times_sent++;
+			
+			free(arp_pack);
+			free(eth_pack);
 			req = req->next;
 		} else { /*If the request was sent 5 times: */
 			struct sr_packet *request_pack = req->packets;
