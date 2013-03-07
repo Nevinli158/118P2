@@ -57,14 +57,13 @@ struct sr_ethernet_hdr* init_sr_ethernet_hdr(uint8_t  ether_dhost[], uint8_t eth
 	return hdr;
 }
 
-struct sr_arp_hdr* init_sr_arp_hdr(unsigned short ar_hrd, unsigned short ar_pro, unsigned char ar_hln,
-	unsigned char ar_pln, unsigned short ar_op, unsigned char ar_sha[], uint32_t ar_sip, unsigned char ar_tha[ETHER_ADDR_LEN],
+struct sr_arp_hdr* init_sr_arp_hdr(unsigned short ar_op, unsigned char ar_sha[], uint32_t ar_sip, unsigned char ar_tha[],
     uint32_t ar_tip){
 	struct sr_arp_hdr* hdr = malloc(sizeof(struct sr_arp_hdr));
-    hdr->ar_hrd = ar_hrd;             /* format of hardware address   */
-    hdr->ar_pro = ar_pro;             /* format of protocol address   */
-    hdr->ar_hln = ar_hln;             /* length of hardware address   */
-    hdr->ar_pln = ar_pln;             /* length of protocol address   */
+    hdr->ar_hrd = arp_hrd_ethernet;             /* format of hardware address   */
+    hdr->ar_pro = ethertype_ip;             /* format of protocol address   */
+    hdr->ar_hln = ETHER_ADDR_LEN;             /* length of hardware address   */
+    hdr->ar_pln = 4;             /* length of protocol address   */
     hdr->ar_op = ar_op;              /* ARP opcode (command)         */
 	memcpy(hdr->ar_sha,ar_sha,ETHER_ADDR_LEN); /* sender hardware address      */
     hdr->ar_sip = ar_sip;             /* sender IP address            */

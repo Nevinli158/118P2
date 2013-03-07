@@ -92,13 +92,24 @@ uint8_t* build_icmp_t3_packet(uint8_t icmp_type, uint8_t icmp_code, uint8_t* fai
 	return buf;
 }
 
-uint8_t* build_arp_packet(sr_arp_hdr_t *arp_hdr) {
+uint8_t* build_arp_packet(unsigned short ar_op, unsigned char ar_sha[], uint32_t ar_sip, unsigned char ar_tha[],
+							uint32_t ar_tip) {
 	uint8_t* buf;
+	struct sr_arp_hdr hdr;
+    hdr.ar_hrd = arp_hrd_ethernet;             /* format of hardware address   */
+    hdr.ar_pro = ethertype_ip;             /* format of protocol address   */
+    hdr.ar_hln = ETHER_ADDR_LEN;             /* length of hardware address   */
+    hdr.ar_pln = 4;             /* length of protocol address   */
+    hdr.ar_op = ar_op;              /* ARP opcode (command)         */
+	memcpy(hdr.ar_sha,ar_sha,ETHER_ADDR_LEN); /* sender hardware address      */
+    hdr.ar_sip = ar_sip;             /* sender IP address            */
+	memcpy(hdr.ar_tha,ar_tha,ETHER_ADDR_LEN); /* target hardware address      */
+    hdr.ar_tip = ar_tip;             /* target IP address            */
+	
 	buf = (uint8_t*) malloc (sizeof(sr_arp_hdr_t));
-	memcpy (buf, arp_hdr, sizeof(sr_arp_hdr_t));
+	memcpy (buf, &hdr, sizeof(sr_arp_hdr_t));
 	return buf;
 }
-
 
 /* Packet parsing functions */
 sr_ethernet_hdr_t* parse_eth_frame(uint8_t *buf, uint8_t *payload) {

@@ -41,11 +41,13 @@ uint16_t ethertype(uint8_t *buf);
 uint8_t ip_protocol(uint8_t *buf);
 
 /* Packet functions defined in sr_packets.c */
-uint8_t* build_eth_frame(sr_ethernet_hdr_t *eth_hdr, uint8_t *data, int datalen);
-uint8_t* build_ip_packet(sr_ip_hdr_t *ip_hdr, uint8_t *data, int datalen);
-uint8_t* build_icmp_packet(sr_icmp_hdr_t *icmp_hdr);
-uint8_t* build_icmp_t3_packet(sr_icmp_t3_hdr_t *icmp_t3_hdr);
-uint8_t* build_arp_packet(sr_arp_hdr_t *arp_hdr);
+uint8_t* build_eth_frame(uint8_t ether_dhost[], uint8_t ether_shost[], uint16_t ether_type, uint8_t *data, int datalen);
+uint8_t* build_ip_packet(uint16_t ip_id, uint16_t ip_off, uint8_t ip_p, uint32_t ip_src, uint32_t ip_dst, 
+							uint8_t *data, int datalen);
+uint8_t* build_icmp_packet(uint8_t icmp_type, uint8_t icmp_code);
+uint8_t* build_icmp_t3_packet(uint8_t icmp_type, uint8_t icmp_code, uint8_t* failed_ip_packet);
+uint8_t* build_arp_packet(unsigned short ar_op, unsigned char ar_sha[], uint32_t ar_sip, unsigned char ar_tha[],
+							uint32_t ar_tip);
 
 
 sr_ethernet_hdr_t* parse_eth_frame(uint8_t *buf, uint8_t *payload);
@@ -57,12 +59,9 @@ sr_arp_hdr_t* parse_arp_packet(uint8_t *buf);
 /*init functions are defined in sr_init_header.c */
 struct sr_icmp_hdr* init_sr_icmp_hdr(uint8_t icmp_type, uint8_t icmp_code, uint16_t icmp_sum);
 struct sr_icmp_t3_hdr* init_sr_icmp_t3_hdr(uint8_t icmp_type, uint8_t icmp_code, uint8_t* failed_ip_packet);
-struct sr_ip_hdr* init_sr_ip_hdr(uint16_t ip_len,
-    uint16_t ip_id, uint16_t ip_off, uint8_t ip_p, uint32_t ip_src, 
-	uint32_t ip_dst);
+struct sr_ip_hdr* init_sr_ip_hdr(uint16_t ip_len, uint16_t ip_id, uint16_t ip_off, uint8_t ip_p, uint32_t ip_src, uint32_t ip_dst);
 struct sr_ethernet_hdr* init_sr_ethernet_hdr(uint8_t ether_dhost[], uint8_t ether_shost[], uint16_t ether_type);
-struct sr_arp_hdr* init_sr_arp_hdr(unsigned short ar_hrd, unsigned short ar_pro, unsigned char ar_hln,
-	unsigned char ar_pln, unsigned short ar_op, unsigned char ar_sha[], uint32_t ar_sip, unsigned char ar_tha[],
+struct sr_arp_hdr* init_sr_arp_hdr(unsigned short ar_op, unsigned char ar_sha[], uint32_t ar_sip, unsigned char ar_tha[],
     uint32_t ar_tip);
 	
 void print_addr_eth(uint8_t *addr);

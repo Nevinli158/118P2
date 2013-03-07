@@ -32,7 +32,6 @@ void sr_arpcache_sweepreqs(struct sr_instance *sr) {
 			while(request_pack != NULL){
 				uint8_t* failed_ip_pack = NULL;/*The client's packet that could not be sent*/
 				struct sr_ethernet_hdr *failed_pack_eth_hdr = NULL; 
-				uint8_t* failed_pack_ether_source = NULL;
 				struct sr_ip_hdr* failed_pack_ip_hdr = NULL;
 				uint8_t* failed_ip_payload = NULL;
 
@@ -40,22 +39,20 @@ void sr_arpcache_sweepreqs(struct sr_instance *sr) {
 				struct sr_if* iface = sr_get_interface(sr,request_pack->iface);
 				
 				failed_pack_eth_hdr = parse_eth_frame(request_pack->buf, failed_ip_pack);
-				failed_pack_ether_source = failed_pack_eth_hdr->ether_shost;
 				failed_pack_ip_hdr = parse_ip_packet(failed_ip_pack, failed_ip_payload);
 
 				icmp_pack = build_icmp_t3_packet(3, 1, failed_ip_pack);
-				ip_pack = build_ip_packet(0, 0, 1, iface->ip, failed_pack_ip_hdr->ip_src, icmp_pack, sizeof(struct sr_icmp_t3_hdr));
+				ip_pack = build_ip_packet(0, 0, ip_protocol_icmp, iface->ip, failed_pack_ip_hdr->ip_src, icmp_pack, sizeof(struct sr_icmp_t3_hdr));
 				if(iface == 0){ Debug("sr_arpcache_sweepreqs: get_interface returned null"); }
-				eth_pack = build_eth_frame(failed_pack_ether_source,iface->addr,0x0800, ip_pack, 
+				eth_pack = build_eth_frame(failed_pack_eth_hdr->ether_shost,iface->addr,0x0800, ip_pack, 
 									sizeof(struct sr_icmp_t3_hdr)+sizeof(struct sr_ip_hdr));
 				
 				sr_send_packet(sr, eth_pack, 
 				sizeof(struct sr_icmp_t3_hdr)+sizeof(struct sr_ip_hdr)+sizeof(struct sr_ethernet_hdr), request_pack->iface);
-				free((void*)icmp_pack);
-				free((void*)ip_pack);
-				free((void*)eth_pack);
-				/*Construct a ICMP failed packet. (we have to do ourselves?)*/
-				/*Send the packet to the source IP. (sr_send_packet)*/
+				free(icmp_pack);
+				free(ip_pack);
+				free(eth_pack);
+
 				request_pack = request_pack->next;
 			}
 			req = req->next;
