@@ -10,7 +10,8 @@ struct sr_icmp_hdr* init_sr_icmp_hdr(uint8_t icmp_type, uint8_t icmp_code, uint1
 	struct sr_icmp_hdr* hdr = malloc(sizeof(struct sr_icmp_hdr));
 	hdr->icmp_type = icmp_type;
 	hdr->icmp_code = icmp_code;
-	hdr->icmp_sum = icmp_sum;
+	hdr->icmp_sum = 0;
+	hdr->icmp_sum = cksum((void*)hdr, sizeof(struct sr_icmp_hdr));
 	return hdr;
 }
 
