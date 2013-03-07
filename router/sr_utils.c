@@ -19,6 +19,85 @@ uint16_t cksum (const void *_data, int len) {
   return sum ? sum : 0xffff;
 }
 
+/* buf - ethernet frame
+   buflen - length of frame */
+bool verify_eth_cksum (uint8_t *buf, int buflen) {
+	uint16_t checksum;
+	
+	checksum = cksum (buf, buflen - 2);
+	if((memcmp (&checksum, buf + buflen - 2, 2)) == 0) {
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+
+/* buf - ip packet
+   buflen - length of packet */
+bool verify_ip_cksum (uint8_t *buf, int buflen) {
+	uint16_t checksum;
+	uint8_t *buf_cpy;
+	
+	/* Make a copy of the packet and set the checksum field to 0 */
+	buf_cpy = (uint8_t *) malloc (buflen);
+	memcpy (buf_cpy, buf, buflen);
+	((sr_ip_hdr_t *) buf_cpy)->ip_sum = 0;
+	/* Compute checksum and check against checksum field in packet */
+	checksum = cksum (buf_cpy, buflen);
+	
+	free (buf_cpy);
+	if((memcmp (&checksum, &(((sr_ip_hdr_t *) buf)->ip_sum), 2)) == 0) {
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+
+bool verify_icmp_cksum (uint8_t *buf) {
+	uint16_t checksum;
+	uint8_t *buf_cpy;
+	int buflen;
+	buflen = sizeof(sr_icmp_hdr_t);
+	
+	/* Make a copy of the packet and set the checksum field to 0 */
+	buf_cpy = (uint8_t *) malloc (buflen);
+	memcpy (buf_cpy, buf, buflen);
+	((sr_icmp_hdr_t *) buf_cpy)->icmp_sum = 0;
+	/* Compute checksum and check against checksum field in packet */
+	checksum = cksum (buf_cpy, buflen);
+	
+	free (buf_cpy);
+	if((memcmp (&checksum, &(((sr_icmp_hdr_t *) buf)->icmp_sum), 2)) == 0) {
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+
+bool verify_icmp_t3_cksum (uint8_t *buf) {
+	uint16_t checksum;
+	uint8_t *buf_cpy;
+	int buflen;
+	buflen = sizeof(sr_icmp_t3_hdr_t);
+	
+	/* Make a copy of the packet and set the checksum field to 0 */
+	buf_cpy = (uint8_t *) malloc (buflen);
+	memcpy (buf_cpy, buf, buflen);
+	((sr_icmp_t3_hdr_t *) buf_cpy)->icmp_sum = 0;
+	/* Compute checksum and check against checksum field in packet */
+	checksum = cksum (buf_cpy, buflen);
+	
+	free (buf_cpy);
+	if((memcmp (&checksum, &(((sr_icmp_t3_hdr_t *) buf)->icmp_sum), 2)) == 0) {
+		return true;
+	}
+	else {
+		return false;
+	}
+}
 
 uint16_t ethertype(uint8_t *buf) {
   sr_ethernet_hdr_t *ehdr = (sr_ethernet_hdr_t *)buf;
