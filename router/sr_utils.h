@@ -28,6 +28,8 @@
 #ifndef SR_UTILS_H
 #define SR_UTILS_H
 
+#include "sr_router.h"
+
 uint16_t cksum(const void *_data, int len);
 typedef int bool;
 enum { false, true };
@@ -36,6 +38,7 @@ bool verify_eth_cksum (uint8_t *buf, int buflen);
 bool verify_ip_cksum (uint8_t *buf, int buflen);
 bool verify_icmp_cksum (uint8_t *buf);
 bool verify_icmp_t3_cksum (uint8_t *buf);
+bool is_router_ip(struct sr_instance* sr, uint32_t ip);
 
 uint16_t ethertype(uint8_t *buf);
 uint8_t ip_protocol(uint8_t *buf);

@@ -72,7 +72,7 @@ void sr_handlepacket(struct sr_instance* sr,
         char* interface/* lent */)
 {
   struct sr_ethernet_hdr* eth_frame = NULL;
-  uint8_t* payload = NULL;
+  uint8_t* ether_payload = NULL;
   /* REQUIRES */
   assert(sr);
   assert(packet);
@@ -83,11 +83,47 @@ void sr_handlepacket(struct sr_instance* sr,
   /* fill in code here */
   
   /* function for comparing checksum before parsing packet */
-  eth_frame = parse_eth_frame(packet, payload);
+  if(verify_eth_cksum(packet, len) == false){
+	Debug("Ethernet checksum failed. Dropping packet.");
+	return;
+  }
+  eth_frame = parse_eth_frame(packet, ether_payload);
   if(eth_frame->ether_type ==  ethertype_ip){  /*IP*/
-	/*struct sr_ip_hdr* ip_hdr = parse_ip_packet(payload, payload);*/
+	uint8_t* ip_payload = NULL;
+	struct sr_ip_hdr* ip_hdr = NULL;
+	/* Subtract out the checksum stuff too? */
+	int ip_pack_len = len - sizeof(struct sr_ethernet_hdr) - 2;
+	if(verify_ip_cksum(ether_payload, ip_pack_len) == false){
+		Debug("IP checksum failed. Dropping packet.");
+		return;
+    }
+	
+	ip_hdr = parse_ip_packet(ether_payload, ip_payload);
+	ip_hdr->ip_ttl--; 
+	if(ip_hdr->ip_ttl <= 0){
+	/* ICMP time exceeded */		
+	}
+	if(is_router_ip(sr, ip_hdr->ip_src)){
+		if(ip_hdr->ip_p == ip_protocol_icmp){
+		
+		} else { 	
+		/* Other protocols not supported, return ICMP port unreachable  */
+		}
+	} else {
+	
+	
+	}
+	/* 
+	*/
   } else if(eth_frame->ether_type ==  ethertype_arp){/*ARP*/
-  
+	struct sr_arp_hdr* arp_hdr = parse_arp_packet(ether_payload);
+	if(arp_hdr->ar_op == arp_op_request){
+		
+	} else if(arp_hdr->ar_op == arp_op_reply){
+	
+	} else {
+		
+	}
   }
 
 }/* end sr_ForwardPacket */
