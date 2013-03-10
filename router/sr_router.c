@@ -153,7 +153,7 @@ void sr_handlepacket(struct sr_instance* sr,
 		} else { 	
 			Debug("HandlePacket: unreachable code branch reached.");
 		}
-	} else {
+	} else { /* Packet is not destined to the router */
 	
 	}
 	/* 
