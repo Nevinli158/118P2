@@ -109,8 +109,8 @@ uint8_t ip_protocol(uint8_t *buf) {
   return iphdr->ip_p;
 }
 
-bool is_router_ip(struct sr_instance* sr, uint32_t ip){
-	return true;
+char* is_router_ip(struct sr_instance* sr, uint32_t ip){
+	return NULL;
 }
 
 
