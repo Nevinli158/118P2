@@ -3,6 +3,7 @@
 #include <string.h>
 #include "sr_protocol.h"
 #include "sr_utils.h"
+#include "sr_if.h"
 
 
 uint16_t cksum (const void *_data, int len) {
@@ -109,7 +110,17 @@ uint8_t ip_protocol(uint8_t *buf) {
   return iphdr->ip_p;
 }
 
+/* Returns the MAC address corresponding to the IP, NULL if none */
 char* is_router_ip(struct sr_instance* sr, uint32_t ip){
+	struct sr_if* if_walker = sr->if_list;
+	
+	while(if_walker) {
+		if(if_walker->ip == ip) {
+			return if_walker->addr;
+		}
+		if_walker = if_walker->next;
+	}
+	
 	return NULL;
 }
 
