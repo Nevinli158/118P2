@@ -118,7 +118,7 @@ void sr_handlepacket(struct sr_instance* sr,
 			/* Time exceeded */
 			icmp_pack = build_icmp_packet(11,0);
 			ip_payload_len = sizeof(struct sr_icmp_hdr);
-		} else if(ip_hdr->ip_p != ip_protocol_icmp) ){ /* Received a non ICMP packet destined for a router interface */
+		} else if(ip_hdr->ip_p != ip_protocol_icmp){ /* Received a non ICMP packet destined for a router interface */
 			/* Port unreachable */
 			icmp_pack = build_icmp_t3_packet(3,3, ip_payload);
 			ip_payload_len = sizeof(struct sr_icmp_t3_hdr);
@@ -126,7 +126,7 @@ void sr_handlepacket(struct sr_instance* sr,
 			sr_icmp_hdr_t* icmp_hdr = parse_icmp_packet(ip_payload);
 			if(icmp_hdr->icmp_type == icmp_type_echo_request){
 				/* Echo reply */
-				icmp_pack = build_icmp_t3_packet(0,0);
+				icmp_pack = build_icmp_packet(0,0);
 				ip_payload_len = sizeof(struct sr_icmp_t3_hdr);			
 			} else {/* what do if received ICMP packet with type not echo request. */
 				return;
