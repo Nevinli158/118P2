@@ -89,10 +89,12 @@ void sr_handlepacket(struct sr_instance* sr,
   }
   eth_frame = parse_eth_frame(packet, ether_payload);
   if(eth_frame->ether_type ==  ethertype_ip){  /*IP*/
+
 	uint8_t* ip_payload = NULL;
 	struct sr_ip_hdr* ip_hdr = NULL;
 	/* Subtract out the checksum stuff too? */
 	int ip_pack_len = len - sizeof(struct sr_ethernet_hdr) - 2;
+
 	if(verify_ip_cksum(ether_payload, ip_pack_len) == false){
 		Debug("IP checksum failed. Dropping packet.");
 		return;
@@ -100,8 +102,38 @@ void sr_handlepacket(struct sr_instance* sr,
 	
 	ip_hdr = parse_ip_packet(ether_payload, ip_payload);
 	ip_hdr->ip_ttl--; 
-	if(ip_hdr->ip_ttl <= 0){
-	/* ICMP time exceeded */		
+	if(ip_hdr->ip_ttl <= 0
+		|| (is_router_ip(sr, ip_hdr->ip_src) && ip_hdr->ip_p == ip_protocol_icmp) ){ /* ICMP time exceeded */	
+		uint8_t* icmp_pack, *ip_pack, *eth_pack;
+		int ip_payload_len;
+		int eth_payload_len; 
+		unsigned int eth_pack_len; 
+		struct sr_if* interface_if = sr_get_interface(sr, interface);
+		struct sr_arpentry *client_mac;
+		if(interface_if == 0){Debug("HandlePacket interface not found.");}
+		
+		if(ip_hdr->ip_ttl <= 0){
+			icmp_pack = build_icmp_packet(11,0);
+			ip_payload_len = sizeof(struct sr_icmp_hdr);
+		} else { /* Received a non ICMP packet destined for a router interface */
+			icmp_pack = build_icmp_t3_packet(11,0, ip_payload);
+			ip_payload_len = sizeof(struct sr_icmp_t3_hdr);
+		}
+		eth_payload_len = ip_payload_len + sizeof(struct sr_ip_hdr);
+		eth_pack_len = eth_payload_len + sizeof(struct sr_ethernet_hdr) + 2; 
+		
+		ip_pack = build_ip_packet(0, 0, ip_protocol_icmp, interface_if->ip, ip_hdr->ip_src, icmp_pack, ip_payload_len);
+		/*Look at ARP cache for the client's MAC */					
+		client_mac =  sr_arpcache_lookup( &(sr->cache), ip_hdr->ip_src);
+		if(client_mac == NULL || client_mac->valid == 0){ /* MAC wasn't found, add the packet to the ARP queue */
+			eth_pack = build_eth_frame(0,interface_if->addr,ethertype_ip, ip_pack, eth_payload_len);
+			struct sr_arpreq *arpreq = 
+			sr_arpcache_queuereq( &(sr->cache), ip_hdr->ip_src, eth_pack, eth_pack_len, iface->name);
+			free(arpreq);
+		} else { /*MAC was found, send the packet off */
+			eth_pack = build_eth_frame(client_mac->mac,iface->addr,ethertype_ip, ip_pack, eth_payload_len);
+			sr_send_packet(sr, eth_pack, eth_pack_len , request_pack->iface);
+		}
 	}
 	if(is_router_ip(sr, ip_hdr->ip_src)){
 		if(ip_hdr->ip_p == ip_protocol_icmp){
@@ -110,7 +142,7 @@ void sr_handlepacket(struct sr_instance* sr,
 		/* Other protocols not supported, return ICMP port unreachable  */
 		}
 	} else {
-	
+	;
 	
 	}
 	/* 
