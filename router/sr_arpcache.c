@@ -68,7 +68,7 @@ void sr_arpcache_sweepreqs(struct sr_instance *sr) {
 					eth_pack = build_eth_frame(0,iface->addr,ethertype_ip, ip_pack, eth_payload_len);
 					struct sr_arpreq *arpreq = 
 					sr_arpcache_queuereq( &(sr->cache), failed_pack_ip_hdr->ip_src, eth_pack, eth_pack_len, iface->name);
-					free(arpreq);
+					if(arpreq != 0){free(arpreq);}
 				} else { /*MAC was found, send the packet off */
 					eth_pack = build_eth_frame(client_mac->mac,iface->addr,ethertype_ip, ip_pack, eth_payload_len);
 					sr_send_packet(sr, eth_pack, eth_pack_len , request_pack->iface);

@@ -12,6 +12,7 @@
  **********************************************************************/
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <assert.h>
 
 
@@ -128,21 +129,31 @@ void sr_handlepacket(struct sr_instance* sr,
 		if(client_mac == NULL || client_mac->valid == 0){ /* MAC wasn't found, add the packet to the ARP queue */
 			eth_pack = build_eth_frame(0,interface_if->addr,ethertype_ip, ip_pack, eth_payload_len);
 			struct sr_arpreq *arpreq = 
-			sr_arpcache_queuereq( &(sr->cache), ip_hdr->ip_src, eth_pack, eth_pack_len, iface->name);
-			free(arpreq);
+			sr_arpcache_queuereq( &(sr->cache), ip_hdr->ip_src, eth_pack, eth_pack_len, interface);
+			
+			if(arpreq != 0){free(arpreq);}
 		} else { /*MAC was found, send the packet off */
-			eth_pack = build_eth_frame(client_mac->mac,iface->addr,ethertype_ip, ip_pack, eth_payload_len);
-			sr_send_packet(sr, eth_pack, eth_pack_len , request_pack->iface);
+			char outgoing[sr_IFACE_NAMELEN];
+			struct sr_if* outgoing_if = NULL;
+			if(sr_prefix_match(sr, ip_hdr->ip_src, outgoing)){
+				outgoing_if = sr_get_interface(sr, outgoing);
+				if(outgoing_if == 0){Debug("HandlePacket: outgoing if = 0");}
+				eth_pack = build_eth_frame(client_mac->mac,outgoing_if->addr,ethertype_ip, ip_pack, eth_payload_len);
+				sr_send_packet(sr, eth_pack, eth_pack_len , outgoing);
+			} else {
+				Debug("No prefix match found: dropping packet");
+			}
+			
 		}
 	}
+	
 	if(is_router_ip(sr, ip_hdr->ip_src)){
 		if(ip_hdr->ip_p == ip_protocol_icmp){
 		
 		} else { 	
-		/* Other protocols not supported, return ICMP port unreachable  */
+			Debug("HandlePacket: unreachable code branch reached.");
 		}
 	} else {
-	;
 	
 	}
 	/* 
