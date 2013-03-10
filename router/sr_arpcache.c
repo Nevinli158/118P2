@@ -54,7 +54,7 @@ void sr_arpcache_sweepreqs(struct sr_instance *sr) {
 				struct sr_if* iface; 
 				int ip_payload_len = sizeof(struct sr_icmp_t3_hdr);
 				int eth_payload_len = ip_payload_len + sizeof(struct sr_ip_hdr);
-				unsigned int eth_pack_len = eth_payload_len + sizeof(struct sr_ip_hdr) + 2; /* */
+				unsigned int eth_pack_len = eth_payload_len + sizeof(struct sr_ethernet_hdr) + 2; /* */
 				
 				failed_pack_eth_hdr = parse_eth_frame(request_pack->buf, failed_ip_pack);
 				failed_pack_ip_hdr = parse_ip_packet(failed_ip_pack, failed_ip_payload);
