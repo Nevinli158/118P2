@@ -80,8 +80,6 @@ void sr_handlepacket(struct sr_instance* sr,
   assert(interface);
 
   printf("*** -> Received packet of length %d \n",len);
-
-  /* fill in code here */
   
   /* function for comparing checksum before parsing packet */
   if(verify_eth_cksum(packet, len) == false){
@@ -103,8 +101,11 @@ void sr_handlepacket(struct sr_instance* sr,
 	
 	ip_hdr = parse_ip_packet(ether_payload, ip_payload);
 	ip_hdr->ip_ttl--; 
+	
+	/* If the packet is destined to the router or if TTL hit 0:
+		all cases where router needs to build and return an ICMP packet*/	
 	if(ip_hdr->ip_ttl <= 0
-		|| (is_router_ip(sr, ip_hdr->ip_src) && ip_hdr->ip_p == ip_protocol_icmp) ){ /* ICMP time exceeded */	
+		|| is_router_ip(sr, ip_hdr->ip_src)){ 
 		uint8_t* icmp_pack, *ip_pack, *eth_pack;
 		int ip_payload_len;
 		int eth_payload_len; 
@@ -112,18 +113,30 @@ void sr_handlepacket(struct sr_instance* sr,
 		struct sr_if* interface_if = sr_get_interface(sr, interface);
 		struct sr_arpentry *client_mac;
 		if(interface_if == 0){Debug("HandlePacket interface not found.");}
-		
-		if(ip_hdr->ip_ttl <= 0){
+		/* Build the ICMP packet depending on the circumstances */
+		if(ip_hdr->ip_ttl <= 0){ /* If the packet is out of hops */
+			/* Time exceeded */
 			icmp_pack = build_icmp_packet(11,0);
 			ip_payload_len = sizeof(struct sr_icmp_hdr);
-		} else { /* Received a non ICMP packet destined for a router interface */
-			icmp_pack = build_icmp_t3_packet(11,0, ip_payload);
+		} else if(ip_hdr->ip_p != ip_protocol_icmp) ){ /* Received a non ICMP packet destined for a router interface */
+			/* Port unreachable */
+			icmp_pack = build_icmp_t3_packet(3,3, ip_payload);
 			ip_payload_len = sizeof(struct sr_icmp_t3_hdr);
+		} else { /* Received an ICMP packet destined for a router interface */
+			sr_icmp_hdr_t* icmp_hdr = parse_icmp_packet(ip_payload);
+			if(icmp_hdr->icmp_type == icmp_type_echo_request){
+				/* Echo reply */
+				icmp_pack = build_icmp_t3_packet(0,0);
+				ip_payload_len = sizeof(struct sr_icmp_t3_hdr);			
+			} else {/* what do if received ICMP packet with type not echo request. */
+				return;
+			
+			}
 		}
 		eth_payload_len = ip_payload_len + sizeof(struct sr_ip_hdr);
 		eth_pack_len = eth_payload_len + sizeof(struct sr_ethernet_hdr) + 2; 
-		
 		ip_pack = build_ip_packet(0, 0, ip_protocol_icmp, interface_if->ip, ip_hdr->ip_src, icmp_pack, ip_payload_len);
+		
 		/*Look at ARP cache for the client's MAC */					
 		client_mac =  sr_arpcache_lookup( &(sr->cache), ip_hdr->ip_src);
 		if(client_mac == NULL || client_mac->valid == 0){ /* MAC wasn't found, add the packet to the ARP queue */
@@ -132,7 +145,7 @@ void sr_handlepacket(struct sr_instance* sr,
 			sr_arpcache_queuereq( &(sr->cache), ip_hdr->ip_src, eth_pack, eth_pack_len, interface);
 			
 			if(arpreq != 0){free(arpreq);}
-		} else { /*MAC was found, send the packet off */
+		} else { /*MAC was found, send the packet off back to original client */
 			char outgoing[sr_IFACE_NAMELEN];
 			struct sr_if* outgoing_if = NULL;
 			if(sr_prefix_match(sr, ip_hdr->ip_src, outgoing)){
@@ -144,14 +157,6 @@ void sr_handlepacket(struct sr_instance* sr,
 				Debug("No prefix match found: dropping packet");
 			}
 			
-		}
-	}
-	
-	if(is_router_ip(sr, ip_hdr->ip_src)){
-		if(ip_hdr->ip_p == ip_protocol_icmp){
-		
-		} else { 	
-			Debug("HandlePacket: unreachable code branch reached.");
 		}
 	} else { /* Packet is not destined to the router */
 	

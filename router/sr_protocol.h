@@ -101,7 +101,9 @@ struct sr_icmp_t3_hdr {
 } __attribute__ ((packed)) ;
 typedef struct sr_icmp_t3_hdr sr_icmp_t3_hdr_t;
 
-
+enum sr_icmp_type {
+  icmp_type_echo_request = 0x0008,
+};
 
 
 /*
