@@ -21,6 +21,35 @@
 
 #include "sr_rt.h"
 #include "sr_router.h"
+#include "sr_utils.h"
+
+
+/* ip_addr - the address to lookup on
+   iface - array for correct interface name 
+		 - assumes iface has size sr_IFACE_NAMELEN 
+   returns true if a match was found, otherwise false */
+bool sr_prefix_match(struct sr_instance* sr, unsigned long ip_addr, char* iface)
+{
+	unsigned long longest_prefix;
+	bool matched;
+	struct sr_rt* rt_walker;
+	
+	longest_prefix = 0;
+	matched = false;
+	rt_walker = sr->routing_table;
+	while (rt_walker) {
+		if (rt_walker->dest.s_addr == (rt_walker->mask.s_addr & ip_addr)) {
+			if(rt_walker->dest.s_addr >= longest_prefix) {
+				longest_prefix = rt_walker->dest.s_addr;
+				memcpy(iface, rt_walker->interface, sr_IFACE_NAMELEN);
+				matched = true;
+			}
+		}
+		rt_walker = rt_walker->next;
+	}
+	
+	return matched;
+}
 
 /*---------------------------------------------------------------------
  * Method:
