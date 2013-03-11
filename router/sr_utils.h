@@ -54,8 +54,8 @@ uint8_t* build_arp_packet(unsigned short ar_op, unsigned char ar_sha[], uint32_t
 							uint32_t ar_tip);
 
 
-sr_ethernet_hdr_t* parse_eth_frame(uint8_t *buf, uint8_t *payload);
-sr_ip_hdr_t* parse_ip_packet(uint8_t *buf, uint8_t *payload);
+sr_ethernet_hdr_t* parse_eth_frame(uint8_t *buf, uint8_t **payload);
+sr_ip_hdr_t* parse_ip_packet(uint8_t *buf, uint8_t **payload);
 sr_icmp_hdr_t* parse_icmp_packet(uint8_t *buf);
 sr_icmp_t3_hdr_t* parse_icmp_t3_packet(uint8_t *buf);
 sr_arp_hdr_t* parse_arp_packet(uint8_t *buf);
