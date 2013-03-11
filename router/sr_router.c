@@ -98,10 +98,10 @@ void sr_handlepacket(struct sr_instance* sr,
   
   /*Construct the outgoing ethernet payload */		
   
-  in_eth_pack = parse_eth_frame(packet, in_ether_payload);
+  in_eth_pack = parse_eth_frame(packet, &in_ether_payload);
   if(in_eth_pack->ether_type == ethertype_ip){  /*IP*/
 	int ip_pack_len = len - sizeof(struct sr_ethernet_hdr) - FCS_SIZE; 	/* Subtract out the checksum stuff too? */
-	int rc = sr_process_ip_payload(sr, interface, in_ether_payload, ip_pack_len, out_eth_payload, &out_eth_payload_len, &out_dest_ip);
+	int rc = sr_process_ip_payload(sr, interface, in_ether_payload, ip_pack_len, &out_eth_payload, &out_eth_payload_len, &out_dest_ip);
 	if(rc != 0){
 		return;
 	}	
@@ -109,7 +109,7 @@ void sr_handlepacket(struct sr_instance* sr,
 	
   } else if(in_eth_pack->ether_type ==  ethertype_arp){/*ARP*/
 	int arp_pack_len = len - sizeof(struct sr_ethernet_hdr) - FCS_SIZE;
-	int rc = sr_process_arp_payload(sr, in_ether_payload, arp_pack_len, out_eth_payload, &out_dest_ip);
+	int rc = sr_process_arp_payload(sr, in_ether_payload, arp_pack_len, &out_eth_payload, &out_dest_ip);
 	if(rc == RC_INSERTED_INTO_ARP_CACHE){
 		return;
 	}
@@ -160,7 +160,7 @@ void sr_handlepacket(struct sr_instance* sr,
 	@param out_dest_ip[OUT] - Destination IP of the outgoing IP packet. More for convenience so you don't need to parse out_ip_packet
 */
 int sr_process_ip_payload(struct sr_instance* sr, char* interface, uint8_t* in_ip_packet, int in_ip_packet_len,
-							uint8_t* out_ip_packet, int* out_ip_packet_len, uint32_t* out_dest_ip){
+							uint8_t** out_ip_packet, int* out_ip_packet_len, uint32_t* out_dest_ip){
 	uint8_t* in_ip_payload = NULL;
 	struct sr_ip_hdr* in_ip_hdr = NULL;
 	int out_ip_payload_len;
@@ -173,7 +173,7 @@ int sr_process_ip_payload(struct sr_instance* sr, char* interface, uint8_t* in_i
 		return RC_CHKSUM_FAILED;
     }
 	
-	in_ip_hdr = parse_ip_packet(in_ip_packet, in_ip_payload);
+	in_ip_hdr = parse_ip_packet(in_ip_packet, &in_ip_payload);
 	in_ip_hdr->ip_ttl--; 
 	in_ip_hdr_ip_dst = ntohl(in_ip_hdr->ip_dst);
 	/* If the packet is destined to the router or if TTL hit 0:
@@ -212,12 +212,12 @@ int sr_process_ip_payload(struct sr_instance* sr, char* interface, uint8_t* in_i
 				return RC_GENERAL_ERROR;
 			}
 		}
-		out_ip_packet = build_ip_packet(0, 0, ip_protocol_icmp, out_ip_packet_src_ip, ntohl(in_ip_hdr->ip_src), icmp_pack, out_ip_payload_len);
+		*out_ip_packet = build_ip_packet(0, 0, ip_protocol_icmp, out_ip_packet_src_ip, ntohl(in_ip_hdr->ip_src), icmp_pack, out_ip_payload_len);
 		*out_dest_ip = ntohl(in_ip_hdr->ip_src);
 		
 		if(icmp_pack != NULL){free(icmp_pack);}
 	} else { /* Packet is not destined to the router */
-		out_ip_packet = in_ip_packet;
+		*out_ip_packet = in_ip_packet;
 		*out_dest_ip = in_ip_hdr_ip_dst;
 		out_ip_payload_len = in_ip_packet_len;
 	}
@@ -241,12 +241,12 @@ int sr_process_ip_payload(struct sr_instance* sr, char* interface, uint8_t* in_i
 			error code
 */
 int sr_process_arp_payload(struct sr_instance* sr, uint8_t* in_arp_packet, int in_arp_packet_len, 
-							uint8_t* out_arp_packet, uint32_t* out_dest_ip){
+							uint8_t** out_arp_packet, uint32_t* out_dest_ip){
 	struct sr_arp_hdr* arp_hdr = parse_arp_packet(in_arp_packet);
 	if(ntohs(arp_hdr->ar_op) == arp_op_request){ /*Reply to the request*/
 		unsigned char* router_mac = (unsigned char*)is_router_ip(sr, ntohl(arp_hdr->ar_tip));
 		if(router_mac != NULL){/*Only respond to requests destined to the router.*/
-			out_arp_packet = build_arp_packet(arp_op_reply, router_mac, ntohl(arp_hdr->ar_tip), arp_hdr->ar_sha,
+			*out_arp_packet = build_arp_packet(arp_op_reply, router_mac, ntohl(arp_hdr->ar_tip), arp_hdr->ar_sha,
 							ntohl(arp_hdr->ar_sip));
 			*out_dest_ip = ntohl(arp_hdr->ar_sip);
 			return 0;
