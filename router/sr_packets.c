@@ -127,14 +127,14 @@ uint8_t* build_arp_packet(unsigned short ar_op, unsigned char ar_sha[], uint32_t
 
 
 /* Packet parsing functions */
-sr_ethernet_hdr_t* parse_eth_frame(uint8_t *buf, uint8_t *payload) {
-	payload = buf + sizeof(sr_ethernet_hdr_t);
+sr_ethernet_hdr_t* parse_eth_frame(uint8_t *buf, uint8_t **payload) {
+	*payload = buf + sizeof(sr_ethernet_hdr_t);
 	
 	return (sr_ethernet_hdr_t*)buf;
 }
 
-sr_ip_hdr_t* parse_ip_packet(uint8_t *buf, uint8_t *payload) {
-	payload = buf + sizeof(sr_ip_hdr_t);
+sr_ip_hdr_t* parse_ip_packet(uint8_t *buf, uint8_t **payload) {
+	*payload = buf + sizeof(sr_ip_hdr_t);
 	
 	return (sr_ip_hdr_t*)buf;
 }
