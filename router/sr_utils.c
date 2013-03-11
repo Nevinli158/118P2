@@ -24,7 +24,7 @@ uint16_t cksum (const void *_data, int len) {
 /* buf - ethernet frame
    buflen - length of frame */
 bool verify_eth_cksum (uint8_t *buf, int buflen) {
-	uint16_t checksum;
+	uint32_t checksum;
 	
 	checksum = cksum (buf, buflen - FCS_SIZE);
 	if((memcmp (&checksum, buf + buflen - FCS_SIZE, FCS_SIZE)) == 0) {
