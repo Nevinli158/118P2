@@ -91,10 +91,10 @@ void sr_handlepacket(struct sr_instance* sr,
   printf("*** -> Received packet of length %d \n",len);
   
   /* function for comparing checksum before parsing packet */
-  if(verify_eth_cksum(packet, len) == false){
+  /*if(verify_eth_cksum(packet, len) == false){
 	Debug("Ethernet checksum failed. Dropping packet.");
 	return;
-  }
+  }*/
   
   /*Construct the outgoing ethernet payload */		
   
@@ -123,7 +123,8 @@ void sr_handlepacket(struct sr_instance* sr,
 	/*Look at ARP cache for the client's MAC */					
 	out_client_mac =  sr_arpcache_lookup( &(sr->cache), out_dest_ip);
 	if(out_client_mac == NULL || out_client_mac->valid == 0){ /* MAC wasn't found, add the packet to the ARP queue */
-		out_eth_pack = build_eth_frame(0,interface_if->addr,out_eth_type, out_eth_payload, out_eth_payload_len);
+		uint8_t ether_dhost = 0;
+		out_eth_pack = build_eth_frame(&ether_dhost,interface_if->addr,out_eth_type, out_eth_payload, out_eth_payload_len);
 		struct sr_arpreq *arpreq = 
 		sr_arpcache_queuereq( &(sr->cache), out_dest_ip, out_eth_pack, out_eth_pack_len, interface);
 		

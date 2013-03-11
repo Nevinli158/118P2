@@ -8,7 +8,7 @@
 
 
 /* Packet building functions */
-uint8_t* build_eth_frame(uint8_t ether_dhost[], uint8_t ether_shost[], uint16_t ether_type, uint8_t *data, int datalen) {
+uint8_t* build_eth_frame(uint8_t *ether_dhost, uint8_t *ether_shost, uint16_t ether_type, uint8_t *data, int datalen) {
 	uint8_t* buf;
 	int packet_length;
 	uint32_t checksum;

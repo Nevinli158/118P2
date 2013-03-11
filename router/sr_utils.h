@@ -45,7 +45,7 @@ uint16_t ethertype(uint8_t *buf);
 uint8_t ip_protocol(uint8_t *buf);
 
 /* Packet functions defined in sr_packets.c */
-uint8_t* build_eth_frame(uint8_t ether_dhost[], uint8_t ether_shost[], uint16_t ether_type, uint8_t *data, int datalen);
+uint8_t* build_eth_frame(uint8_t *ether_dhost, uint8_t *ether_shost, uint16_t ether_type, uint8_t *data, int datalen);
 uint8_t* build_ip_packet(uint16_t ip_id, uint16_t ip_off, uint8_t ip_p, uint32_t ip_src, uint32_t ip_dst, 
 							uint8_t *data, int datalen);
 uint8_t* build_icmp_packet(uint8_t icmp_type, uint8_t icmp_code);
