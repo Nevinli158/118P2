@@ -39,7 +39,7 @@ PFLAGS= -follow-child-processes=yes -cache-dir=/tmp/${USER}
 PURIFY= purify ${PFLAGS}
 
 # Add any header files you've added here
-sr_HDRS = sr_arpcache.h sr_utils.h sr_dumper.h sr_if.h sr_protocol.h sr_router.h sr_rt.h  \
+sr_HDRS = sr_arpcache.h sr_utils.h sr_dumper.h sr_if.h sr_protocol.h sr_router.h sr_rt.h sr_headers.h  \
           vnscommand.h sha1.h
 
 # Add any source files you've added here
