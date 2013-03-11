@@ -4,27 +4,28 @@
 #include "sr_protocol.h"
 #include "sr_utils.h"
 #include "sr_router.h"
+#include "sr_headers.h"
 
 
 /* Packet building functions */
 uint8_t* build_eth_frame(uint8_t ether_dhost[], uint8_t ether_shost[], uint16_t ether_type, uint8_t *data, int datalen) {
 	uint8_t* buf;
 	int packet_length;
-	uint16_t checksum;
+	uint32_t checksum;
 	struct sr_ethernet_hdr hdr;
 	memcpy(hdr.ether_dhost,ether_dhost,ETHER_ADDR_LEN); /* destination ethernet address */
 	memcpy(hdr.ether_shost,ether_shost,ETHER_ADDR_LEN); /* source ethernet address */
     hdr.ether_type = htons(ether_type);                     /* packet type ID */
 	
-	packet_length = sizeof(sr_ethernet_hdr_t) + (sizeof(uint8_t) * datalen) + 2;
+	packet_length = sizeof(sr_ethernet_hdr_t) + (sizeof(uint8_t) * datalen) + FCS_SIZE;
 	/* Packet */
 	buf = (uint8_t*) malloc (packet_length);
 	memcpy (buf, &hdr, sizeof(sr_ethernet_hdr_t));
 	memcpy (buf + sizeof(sr_ethernet_hdr_t), data, datalen);
 	/* Checksum */
-	checksum = cksum(buf, packet_length - 2);
-	checksum = htons(checksum);
-	memcpy (buf + packet_length - 2, &checksum, 2);
+	checksum = cksum(buf, packet_length - FCS_SIZE);
+	checksum = htonl(checksum);
+	memcpy (buf + packet_length - FCS_SIZE, &checksum, FCS_SIZE);
 	
 	return buf;
 }
@@ -32,8 +33,8 @@ uint8_t* build_eth_frame(uint8_t ether_dhost[], uint8_t ether_shost[], uint16_t 
 uint8_t* build_ip_packet(uint16_t ip_id, uint16_t ip_off, uint8_t ip_p, uint32_t ip_src, uint32_t ip_dst, 
 							uint8_t *data, int datalen) {
 	uint8_t* buf;
-	int packet_length;
-	int checksum;
+	uint16_t packet_length;
+	uint16_t checksum;
 	
 	struct sr_ip_hdr hdr;
 	#if __BYTE_ORDER == __LITTLE_ENDIAN
@@ -67,7 +68,7 @@ uint8_t* build_ip_packet(uint16_t ip_id, uint16_t ip_off, uint8_t ip_p, uint32_t
 
 uint8_t* build_icmp_packet(uint8_t icmp_type, uint8_t icmp_code) {
 	uint8_t* buf;
-	int checksum;
+	uint16_t checksum;
 	
 	struct sr_icmp_hdr hdr;
 	hdr.icmp_type = icmp_type;
@@ -83,7 +84,7 @@ uint8_t* build_icmp_packet(uint8_t icmp_type, uint8_t icmp_code) {
 
 uint8_t* build_icmp_t3_packet(uint8_t icmp_type, uint8_t icmp_code, uint8_t* failed_ip_packet) {
 	uint8_t* buf;
-	int checksum;
+	uint16_t checksum;
 	struct sr_icmp_t3_hdr hdr;
 	
 	hdr.icmp_type = icmp_type;
