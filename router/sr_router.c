@@ -22,6 +22,7 @@
 #include "sr_protocol.h"
 #include "sr_arpcache.h"
 #include "sr_utils.h"
+#include "sr_headers.h"
 
 /*---------------------------------------------------------------------
  * Method: sr_init(void)
@@ -80,7 +81,7 @@ void sr_handlepacket(struct sr_instance* sr,
 	struct sr_arpentry *out_client_mac;
 	unsigned int out_eth_pack_len; 
 	unsigned int out_eth_type; 
-	uint8_t *out_eth_pack;
+	uint8_t *out_eth_pack = NULL;
   struct sr_if* interface_if = sr_get_interface(sr, interface);	
   /* REQUIRES */
   assert(sr);
@@ -99,20 +100,26 @@ void sr_handlepacket(struct sr_instance* sr,
   
   in_eth_pack = parse_eth_frame(packet, in_ether_payload);
   if(in_eth_pack->ether_type == ethertype_ip){  /*IP*/
-	int ip_pack_len = len - sizeof(struct sr_ethernet_hdr) - 2; 	/* Subtract out the checksum stuff too? */
-	sr_process_ip_payload(sr, interface, in_ether_payload, ip_pack_len, out_eth_payload, &out_eth_payload_len, &out_dest_ip);
+	int ip_pack_len = len - sizeof(struct sr_ethernet_hdr) - FCS_SIZE; 	/* Subtract out the checksum stuff too? */
+	int rc = sr_process_ip_payload(sr, interface, in_ether_payload, ip_pack_len, out_eth_payload, &out_eth_payload_len, &out_dest_ip);
+	if(rc != 0){
+		return;
+	}	
 	out_eth_type = ethertype_ip;
 	
   } else if(in_eth_pack->ether_type ==  ethertype_arp){/*ARP*/
-	int arp_pack_len = len - sizeof(struct sr_ethernet_hdr) - 2;
-	sr_process_arp_payload(sr, in_ether_payload, arp_pack_len, out_eth_payload, &out_dest_ip);
+	int arp_pack_len = len - sizeof(struct sr_ethernet_hdr) - FCS_SIZE;
+	int rc = sr_process_arp_payload(sr, in_ether_payload, arp_pack_len, out_eth_payload, &out_dest_ip);
+	if(rc == RC_INSERTED_INTO_ARP_CACHE){
+		return;
+	}
 	out_eth_type = ethertype_arp;
 	out_eth_payload_len = sizeof(struct sr_arp_hdr);
   }
   
 	/*Construct the outgoing ethernet frame and send it off */			
 	
-  	out_eth_pack_len = out_eth_payload_len + sizeof(struct sr_ethernet_hdr) + 2; 	
+  	out_eth_pack_len = out_eth_payload_len + sizeof(struct sr_ethernet_hdr) + FCS_SIZE; 	
 	/*Look at ARP cache for the client's MAC */					
 	out_client_mac =  sr_arpcache_lookup( &(sr->cache), out_dest_ip);
 	if(out_client_mac == NULL || out_client_mac->valid == 0){ /* MAC wasn't found, add the packet to the ARP queue */
@@ -133,6 +140,9 @@ void sr_handlepacket(struct sr_instance* sr,
 			Debug("No prefix match found: dropping packet");
 		}
 	}
+	
+	if(out_eth_payload != NULL){free(out_eth_payload);}
+	if(out_eth_pack != NULL){free(out_eth_pack);}
 
 }/* end sr_ForwardPacket */
 
@@ -158,7 +168,7 @@ int sr_process_ip_payload(struct sr_instance* sr, char* interface, uint8_t* in_i
 
 	if(verify_ip_cksum(in_ip_packet, in_ip_packet_len) == false){
 		Debug("IP checksum failed. Dropping packet.");
-		return -1;
+		return RC_CHKSUM_FAILED;
     }
 	
 	in_ip_hdr = parse_ip_packet(in_ip_packet, in_ip_payload);
@@ -168,7 +178,7 @@ int sr_process_ip_payload(struct sr_instance* sr, char* interface, uint8_t* in_i
 		all cases where router needs to build and return an ICMP packet*/	
 	if(in_ip_hdr->ip_ttl <= 0
 		|| is_router_ip(sr, in_ip_hdr->ip_dst)){ 
-		uint8_t* icmp_pack;
+		uint8_t* icmp_pack = NULL;
 		uint32_t out_ip_packet_src_ip;
 		
 		if(interface_if == 0){Debug("HandlePacket interface not found.");}
@@ -197,11 +207,13 @@ int sr_process_ip_payload(struct sr_instance* sr, char* interface, uint8_t* in_i
 				out_ip_payload_len = sizeof(struct sr_icmp_t3_hdr);	
 				out_ip_packet_src_ip = in_ip_hdr->ip_dst;
 			} else {/* what do if received ICMP packet with type not echo request. */
-				return -1;
+				return RC_GENERAL_ERROR;
 			}
 		}
 		out_ip_packet = build_ip_packet(0, 0, ip_protocol_icmp, out_ip_packet_src_ip, in_ip_hdr->ip_src, icmp_pack, out_ip_payload_len);
 		*out_dest_ip = in_ip_hdr->ip_src;
+		
+		if(icmp_pack != NULL){free(icmp_pack);}
 	} else { /* Packet is not destined to the router */
 		out_ip_packet = in_ip_packet;
 		*out_dest_ip = in_ip_hdr->ip_dst;
@@ -242,14 +254,14 @@ int sr_process_arp_payload(struct sr_instance* sr, uint8_t* in_arp_packet, int i
 	} else if(arp_hdr->ar_op == arp_op_reply){/*Insert the reply into the cache*/
 		if(is_router_ip(sr, arp_hdr->ar_tip)){/*Only cache replies destined to the router.*/
 			sr_arpcache_insert(&(sr->cache), arp_hdr->ar_sha, arp_hdr->ar_sip);
-			return -1;
+			return RC_INSERTED_INTO_ARP_CACHE;
 		} else {
 		
 		}
 	} else {
 		
 	}						
-	return -1;
+	return RC_GENERAL_ERROR;
 				
 }
 
