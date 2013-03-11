@@ -75,8 +75,8 @@ void sr_handlepacket(struct sr_instance* sr,
   struct sr_ethernet_hdr* in_eth_pack = NULL;
   uint8_t* in_ether_payload = NULL;
 	uint32_t out_dest_ip = 0;
-	 uint8_t* out_eth_payload; 
-	int out_eth_payload_len; 
+	 uint8_t* out_eth_payload = NULL; 
+	int out_eth_payload_len = 0; 
 	struct sr_arpentry *out_client_mac;
 	unsigned int out_eth_pack_len; 
 	unsigned int out_eth_type; 
@@ -99,76 +99,13 @@ void sr_handlepacket(struct sr_instance* sr,
   
   in_eth_pack = parse_eth_frame(packet, in_ether_payload);
   if(in_eth_pack->ether_type == ethertype_ip){  /*IP*/
-	uint8_t* in_ip_payload = NULL;
-	struct sr_ip_hdr* in_ip_hdr = NULL;
-	int out_ip_payload_len;
-	/* Subtract out the checksum stuff too? */
-	int ip_pack_len = len - sizeof(struct sr_ethernet_hdr) - 2;
-
-	if(verify_ip_cksum(in_ether_payload, ip_pack_len) == false){
-		Debug("IP checksum failed. Dropping packet.");
-		return;
-    }
-	
-	in_ip_hdr = parse_ip_packet(in_ether_payload, in_ip_payload);
-	in_ip_hdr->ip_ttl--; 
-	
-	/* If the packet is destined to the router or if TTL hit 0:
-		all cases where router needs to build and return an ICMP packet*/	
-	if(in_ip_hdr->ip_ttl <= 0
-		|| is_router_ip(sr, in_ip_hdr->ip_src)){ 
-		uint8_t* icmp_pack;
-		
-		if(interface_if == 0){Debug("HandlePacket interface not found.");}
-		/* Build the ICMP packet depending on the circumstances */
-		if(in_ip_hdr->ip_ttl <= 0){ /* If the packet is out of hops */
-			/* Time exceeded */
-			icmp_pack = build_icmp_packet(11,0);
-			out_ip_payload_len = sizeof(struct sr_icmp_hdr);
-		} else if(in_ip_hdr->ip_p != ip_protocol_icmp){ /* Received a non ICMP packet destined for a router interface */
-			/* Port unreachable */
-			icmp_pack = build_icmp_t3_packet(3,3, in_ip_payload);
-			out_ip_payload_len = sizeof(struct sr_icmp_t3_hdr);
-		} else { /* Received an ICMP packet destined for a router interface */
-			sr_icmp_hdr_t* icmp_hdr = parse_icmp_packet(in_ip_payload);
-			if(icmp_hdr->icmp_type == icmp_type_echo_request){
-				/* Echo reply */
-				icmp_pack = build_icmp_packet(0,0);
-				out_ip_payload_len = sizeof(struct sr_icmp_t3_hdr);			
-			} else {/* what do if received ICMP packet with type not echo request. */
-				return;
-			}
-		}
-		out_eth_payload = build_ip_packet(0, 0, ip_protocol_icmp, interface_if->ip, in_ip_hdr->ip_src, icmp_pack, out_ip_payload_len);
-		out_dest_ip = in_ip_hdr->ip_src;
-	} else { /* Packet is not destined to the router */
-		out_eth_payload = in_ether_payload;
-		out_dest_ip = in_ip_hdr->ip_dst;
-	}
+	int ip_pack_len = len - sizeof(struct sr_ethernet_hdr) - 2; 	/* Subtract out the checksum stuff too? */
+	sr_process_ip_payload(sr, interface, in_ether_payload, ip_pack_len, out_eth_payload, &out_eth_payload_len, &out_dest_ip);
 	out_eth_type = ethertype_ip;
-	out_eth_payload_len = out_ip_payload_len + sizeof(struct sr_ip_hdr);
 	
   } else if(in_eth_pack->ether_type ==  ethertype_arp){/*ARP*/
-	struct sr_arp_hdr* arp_hdr = parse_arp_packet(in_ether_payload);
-	if(arp_hdr->ar_op == arp_op_request){ /*Reply to the request*/
-		unsigned char* router_mac = (unsigned char*)is_router_ip(sr, arp_hdr->ar_tip);
-		if(router_mac != NULL){/*Only respond to requests destined to the router.*/
-			out_eth_payload = build_arp_packet(arp_op_reply, router_mac, arp_hdr->ar_tip, arp_hdr->ar_sha,
-							arp_hdr->ar_sip);
-			out_dest_ip = arp_hdr->ar_sip;
-		} else {
-		
-		}
-	} else if(arp_hdr->ar_op == arp_op_reply){/*Insert the reply into the cache*/
-		if(is_router_ip(sr, arp_hdr->ar_tip)){/*Only cache replies destined to the router.*/
-			sr_arpcache_insert(&(sr->cache), arp_hdr->ar_sha, arp_hdr->ar_sip);
-			return;
-		} else {
-		
-		}
-	} else {
-		
-	}
+	int arp_pack_len = len - sizeof(struct sr_ethernet_hdr) - 2;
+	sr_process_arp_payload(sr, in_ether_payload, arp_pack_len, out_eth_payload, &out_dest_ip);
 	out_eth_type = ethertype_arp;
 	out_eth_payload_len = sizeof(struct sr_arp_hdr);
   }
@@ -198,4 +135,126 @@ void sr_handlepacket(struct sr_instance* sr,
 	}
 
 }/* end sr_ForwardPacket */
+
+
+/**
+	Processes an incoming IP packet, and generates a response IP packet based on the payload.
+	Returns error code if the incoming IP packet should be dropped.
+	@param sr[IN]
+	@param interface[IN] - borrowed
+	@param in_ip_packet[IN] - The IP packet that the response is based off of
+	@param in_ip_packet_len[IN] - Length of the incoming IP packet.
+	@param out_ip_packet[OUT] - Takes in an empty pointer, and sets it to the new outgoing packet that needs to be freed.
+	@param out_ip_packet_len[OUT] - Length of the outgoing IP packet
+	@param out_dest_ip[OUT] - Destination IP of the outgoing IP packet. More for convenience so you don't need to parse out_ip_packet
+*/
+int sr_process_ip_payload(struct sr_instance* sr, char* interface, uint8_t* in_ip_packet, int in_ip_packet_len,
+							uint8_t* out_ip_packet, int* out_ip_packet_len, uint32_t* out_dest_ip){
+	uint8_t* in_ip_payload = NULL;
+	struct sr_ip_hdr* in_ip_hdr = NULL;
+	int out_ip_payload_len;
+	struct sr_if* interface_if = sr_get_interface(sr, interface);	
+	/* Subtract out the checksum stuff too? */
+
+	if(verify_ip_cksum(in_ip_packet, in_ip_packet_len) == false){
+		Debug("IP checksum failed. Dropping packet.");
+		return -1;
+    }
+	
+	in_ip_hdr = parse_ip_packet(in_ip_packet, in_ip_payload);
+	in_ip_hdr->ip_ttl--; 
+	
+	/* If the packet is destined to the router or if TTL hit 0:
+		all cases where router needs to build and return an ICMP packet*/	
+	if(in_ip_hdr->ip_ttl <= 0
+		|| is_router_ip(sr, in_ip_hdr->ip_dst)){ 
+		uint8_t* icmp_pack;
+		uint32_t out_ip_packet_src_ip;
+		
+		if(interface_if == 0){Debug("HandlePacket interface not found.");}
+		/* Build the ICMP packet depending on the circumstances */
+		if(in_ip_hdr->ip_ttl <= 0){ /* If the packet is out of hops */
+			/* Time exceeded */
+			icmp_pack = build_icmp_packet(11,0);
+			out_ip_payload_len = sizeof(struct sr_icmp_hdr);
+			if(is_router_ip(sr, in_ip_hdr->ip_dst)){ 
+				/* If destined to a router ip, reply from that router ip */
+				out_ip_packet_src_ip = in_ip_hdr->ip_dst;
+			} else {
+				/* If destined to another ip, reply from interface that the packet came in */
+				out_ip_packet_src_ip = interface_if->ip;
+			}
+		} else if(in_ip_hdr->ip_p != ip_protocol_icmp){ /* Received a non ICMP packet destined for a router interface */
+			/* Port unreachable */
+			icmp_pack = build_icmp_t3_packet(3,3, in_ip_payload);
+			out_ip_payload_len = sizeof(struct sr_icmp_t3_hdr);
+			out_ip_packet_src_ip = in_ip_hdr->ip_dst;
+		} else { /* Received an ICMP packet destined for a router interface */
+			sr_icmp_hdr_t* icmp_hdr = parse_icmp_packet(in_ip_payload);
+			if(icmp_hdr->icmp_type == icmp_type_echo_request){
+				/* Echo reply */
+				icmp_pack = build_icmp_packet(0,0);
+				out_ip_payload_len = sizeof(struct sr_icmp_t3_hdr);	
+				out_ip_packet_src_ip = in_ip_hdr->ip_dst;
+			} else {/* what do if received ICMP packet with type not echo request. */
+				return -1;
+			}
+		}
+		out_ip_packet = build_ip_packet(0, 0, ip_protocol_icmp, out_ip_packet_src_ip, in_ip_hdr->ip_src, icmp_pack, out_ip_payload_len);
+		*out_dest_ip = in_ip_hdr->ip_src;
+	} else { /* Packet is not destined to the router */
+		out_ip_packet = in_ip_packet;
+		*out_dest_ip = in_ip_hdr->ip_dst;
+		out_ip_payload_len = in_ip_packet_len;
+	}
+	*out_ip_packet_len = out_ip_payload_len + sizeof(struct sr_ip_hdr);
+	return 0;
+}
+
+
+/**
+
+	Processes an incoming ARP packet, and generates a response ARP packet if it was a request from the router.
+	If it was a reply, then it adds it to the ARP cache and returns a code signifying that it was a reponse.
+	@param sr[IN]
+	@param interface[IN] - borrowed
+	@param in_ip_packet[IN] - The IP packet that the response is based off of
+	@param in_ip_packet_len[IN] - Length of the incoming IP packet.
+	@param out_ip_packet[OUT] - Takes in an empty pointer, and sets it to the new outgoing packet that needs to be freed.
+	@param out_ip_packet_len[OUT] - Length of the outgoing IP packet
+	@param out_dest_ip[OUT] - Destination IP of the outgoing IP packet. More for convenience so you don't need to parse out_ip_packet
+	@return 0 if a packet was generated due to a request.
+			error code
+*/
+int sr_process_arp_payload(struct sr_instance* sr, uint8_t* in_arp_packet, int in_arp_packet_len, 
+							uint8_t* out_arp_packet, uint32_t* out_dest_ip){
+	struct sr_arp_hdr* arp_hdr = parse_arp_packet(in_arp_packet);
+	if(arp_hdr->ar_op == arp_op_request){ /*Reply to the request*/
+		unsigned char* router_mac = (unsigned char*)is_router_ip(sr, arp_hdr->ar_tip);
+		if(router_mac != NULL){/*Only respond to requests destined to the router.*/
+			out_arp_packet = build_arp_packet(arp_op_reply, router_mac, arp_hdr->ar_tip, arp_hdr->ar_sha,
+							arp_hdr->ar_sip);
+			*out_dest_ip = arp_hdr->ar_sip;
+			return 0;
+		} else {
+		
+		}
+	} else if(arp_hdr->ar_op == arp_op_reply){/*Insert the reply into the cache*/
+		if(is_router_ip(sr, arp_hdr->ar_tip)){/*Only cache replies destined to the router.*/
+			sr_arpcache_insert(&(sr->cache), arp_hdr->ar_sha, arp_hdr->ar_sip);
+			return -1;
+		} else {
+		
+		}
+	} else {
+		
+	}						
+	return -1;
+				
+}
+
+
+
+
+
 
