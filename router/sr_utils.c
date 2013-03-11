@@ -4,6 +4,7 @@
 #include "sr_protocol.h"
 #include "sr_utils.h"
 #include "sr_if.h"
+#include "sr_headers.h"
 
 
 uint16_t cksum (const void *_data, int len) {
@@ -25,8 +26,8 @@ uint16_t cksum (const void *_data, int len) {
 bool verify_eth_cksum (uint8_t *buf, int buflen) {
 	uint16_t checksum;
 	
-	checksum = cksum (buf, buflen - 2);
-	if((memcmp (&checksum, buf + buflen - 2, 2)) == 0) {
+	checksum = cksum (buf, buflen - FCS_SIZE);
+	if((memcmp (&checksum, buf + buflen - FCS_SIZE, FCS_SIZE)) == 0) {
 		return true;
 	}
 	else {
