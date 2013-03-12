@@ -30,7 +30,7 @@ void sr_arpcache_sweepreqs(struct sr_instance *sr) {
 			unsigned char buf[6]; 
 			int i;
 			for(i = 0; i < 6; i++){
-				buf[i] = 0xf;
+				buf[i] = 0xff;
 			}
 			if(iface == 0){ Debug("sr_arpcache_sweepreqs<5: get_interface returned null"); }
 			arp_pack = build_arp_packet(arp_op_request, iface->addr, iface->ip, buf, req->ip);

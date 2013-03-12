@@ -169,18 +169,18 @@ void print_hdr_eth(uint8_t *buf) {
   print_addr_eth(ehdr->ether_dhost);
   fprintf(stderr, "\tsource: ");
   print_addr_eth(ehdr->ether_shost);
-  fprintf(stderr, "\ttype: %d\n", ehdr->ether_type);
+  fprintf(stderr, "\ttype: %d\n", ntohs(ehdr->ether_type));
 }
 
-/* Prints out fields in IP header, IPs need to be converted */
+/* Prints out fields in IP header. */
 void print_hdr_ip(uint8_t *buf) {
   sr_ip_hdr_t *iphdr = (sr_ip_hdr_t *)(buf);
   fprintf(stderr, "IP header:\n");
   fprintf(stderr, "\tversion: %d\n", iphdr->ip_v);
   fprintf(stderr, "\theader length: %d\n", iphdr->ip_hl);
   fprintf(stderr, "\ttype of service: %d\n", iphdr->ip_tos);
-  fprintf(stderr, "\tlength: %d\n", iphdr->ip_len);
-  fprintf(stderr, "\tid: %d\n", iphdr->ip_id);
+  fprintf(stderr, "\tlength: %d\n", ntohs(iphdr->ip_len));
+  fprintf(stderr, "\tid: %d\n", ntohs(iphdr->ip_id));
 
   if (ntohs(iphdr->ip_off) & IP_DF)
     fprintf(stderr, "\tfragment flag: DF\n");
@@ -189,7 +189,7 @@ void print_hdr_ip(uint8_t *buf) {
   else if (ntohs(iphdr->ip_off) & IP_RF)
     fprintf(stderr, "\tfragment flag: R\n");
 
-  fprintf(stderr, "\tfragment offset: %d\n", iphdr->ip_off & IP_OFFMASK);
+  fprintf(stderr, "\tfragment offset: %d\n", ntohs(iphdr->ip_off) & IP_OFFMASK);
   fprintf(stderr, "\tTTL: %d\n", iphdr->ip_ttl);
   fprintf(stderr, "\tprotocol: %d\n", iphdr->ip_p);
 
@@ -218,11 +218,11 @@ void print_hdr_icmp(uint8_t *buf) {
 void print_hdr_arp(uint8_t *buf) {
   sr_arp_hdr_t *arp_hdr = (sr_arp_hdr_t *)(buf);
   fprintf(stderr, "ARP header\n");
-  fprintf(stderr, "\thardware type: %d\n", arp_hdr->ar_hrd);
-  fprintf(stderr, "\tprotocol type: %d\n", arp_hdr->ar_pro);
+  fprintf(stderr, "\thardware type: %d\n", ntohs(arp_hdr->ar_hrd));
+  fprintf(stderr, "\tprotocol type: %d\n", ntohs(arp_hdr->ar_pro));
   fprintf(stderr, "\thardware address length: %d\n", arp_hdr->ar_hln);
   fprintf(stderr, "\tprotocol address length: %d\n", arp_hdr->ar_pln);
-  fprintf(stderr, "\topcode: %d\n", arp_hdr->ar_op);
+  fprintf(stderr, "\topcode: %d\n", ntohs(arp_hdr->ar_op));
 
   fprintf(stderr, "\tsender hardware address: ");
   print_addr_eth(arp_hdr->ar_sha);
@@ -235,8 +235,7 @@ void print_hdr_arp(uint8_t *buf) {
   print_addr_ip_int(ntohl(arp_hdr->ar_tip));
 }
 
-/* Prints out all possible headers, starting from Ethernet 
-	Assumes that the entire header has been translated to host EXCEPT for the IPs*/
+/* Prints out all possible headers, starting from Ethernet */
 void print_hdrs(uint8_t *buf, uint32_t length) {
 
   /* Ethernet */
@@ -278,4 +277,3 @@ void print_hdrs(uint8_t *buf, uint32_t length) {
     fprintf(stderr, "Unrecognized Ethernet Type: %d\n", ethtype);
   }
 }
-

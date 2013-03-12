@@ -572,8 +572,9 @@ int sr_send_packet(struct sr_instance* sr /* borrowed */,
     assert(sr);
     assert(buf);
     assert(iface);
-	print_hdrs(buf,len);
+	
 	convert_to_network(buf);
+	print_hdrs(buf,len);
 	
     /* don't waste my time ... */
     if ( len < sizeof(struct sr_ethernet_hdr) ){
