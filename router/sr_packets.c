@@ -166,8 +166,8 @@ RC convert_to_host(uint8_t *buf) {
 		ip->ip_id = ntohs(ip->ip_id);
 		ip->ip_off = ntohs(ip->ip_off);
 		ip->ip_sum = ntohs(ip->ip_sum);
-		ip->ip_src = ntohl(ip->ip_src);
-		ip->ip_dst = ntohl(ip->ip_dst);
+		/*ip->ip_src = ntohl(ip->ip_src);
+		/*ip->ip_dst = ntohl(ip->ip_dst);
 	}
 	/* parse ethernet payload - arp packet */
 	else if(eth->ether_type == ethertype_arp) {
@@ -177,8 +177,8 @@ RC convert_to_host(uint8_t *buf) {
 		arp->ar_hrd = ntohs(arp->ar_hrd);
 		arp->ar_pro = ntohs(arp->ar_pro);
 		arp->ar_op = ntohs(arp->ar_op);
-		arp->ar_sip = ntohl(arp->ar_sip);
-		arp->ar_tip = ntohl(arp->ar_tip);
+		/*arp->ar_sip = ntohl(arp->ar_sip);
+		/*arp->ar_tip = ntohl(arp->ar_tip);
 	}
 	else {
 		return RC_GENERAL_ERROR;
@@ -228,8 +228,8 @@ RC convert_to_network(uint8_t *buf) {
 		ip->ip_id = htons(ip->ip_id);
 		ip->ip_off = htons(ip->ip_off);
 		ip->ip_sum = htons(ip->ip_sum);
-		ip->ip_src = htonl(ip->ip_src);
-		ip->ip_dst = htonl(ip->ip_dst);
+		/*ip->ip_src = htonl(ip->ip_src);*/
+		/*ip->ip_dst = htonl(ip->ip_dst);*/
 	}
 	/* parse ethernet payload - arp packet */
 	else if(eth->ether_type == ethertype_arp) {
@@ -239,8 +239,8 @@ RC convert_to_network(uint8_t *buf) {
 		arp->ar_hrd = htons(arp->ar_hrd);
 		arp->ar_pro = htons(arp->ar_pro);
 		arp->ar_op = htons(arp->ar_op);
-		arp->ar_sip = htonl(arp->ar_sip);
-		arp->ar_tip = htonl(arp->ar_tip);
+		/*arp->ar_sip = htonl(arp->ar_sip);*/
+		/*arp->ar_tip = htonl(arp->ar_tip);*/
 	}
 	else {
 		return RC_GENERAL_ERROR;
