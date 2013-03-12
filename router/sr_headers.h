@@ -8,6 +8,7 @@ static const int RC_INSERTED_INTO_ARP_CACHE = -1001;
 static const int RC_CHKSUM_FAILED = -1002;
 static const int RC_PACKET_LEN_TOO_SMALL = -1003;
 static const int RC_GENERAL_ERROR = -1004;
+static const int RC_ARP_NOT_DESTINED_TO_ROUTER = -1005;
 
 /* length of the ethernet frame checksum */
 static const unsigned int FCS_SIZE = 4;

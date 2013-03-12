@@ -89,7 +89,7 @@ void sr_handlepacket(struct sr_instance* sr,
   assert(interface);
 
   printf("*** -> Received packet of length %d \n",len);
-  
+  convert_to_host(packet);
   /* function for comparing checksum before parsing packet */
   /*if(verify_eth_cksum(packet, len) == false){
 	Debug("Ethernet checksum failed. Dropping packet.");
@@ -112,6 +112,12 @@ void sr_handlepacket(struct sr_instance* sr,
 	int rc = sr_process_arp_payload(sr, in_ether_payload, arp_pack_len, &out_eth_payload, &out_dest_ip);
 	if(rc == RC_INSERTED_INTO_ARP_CACHE){
 		return;
+	} else if(rc == RC_ARP_NOT_DESTINED_TO_ROUTER){
+		Debug("Dropping ARP not destined for router.");
+		return;
+	} else if (rc == RC_GENERAL_ERROR){
+		Debug("Dropping ARP with invalid op.");
+		return;		
 	}
 	out_eth_type = ethertype_arp;
 	out_eth_payload_len = sizeof(struct sr_arp_hdr);
@@ -166,6 +172,7 @@ int sr_process_ip_payload(struct sr_instance* sr, char* interface, uint8_t* in_i
 	int out_ip_payload_len;
 	struct sr_if* interface_if = sr_get_interface(sr, interface);	
 	uint32_t in_ip_hdr_ip_dst = 0;
+
 	/* Subtract out the checksum stuff too? */
 
 	if(verify_ip_cksum(in_ip_packet, in_ip_packet_len) == false){
@@ -175,7 +182,7 @@ int sr_process_ip_payload(struct sr_instance* sr, char* interface, uint8_t* in_i
 	
 	in_ip_hdr = parse_ip_packet(in_ip_packet, &in_ip_payload);
 	in_ip_hdr->ip_ttl--; 
-	in_ip_hdr_ip_dst = ntohl(in_ip_hdr->ip_dst);
+	in_ip_hdr_ip_dst = in_ip_hdr->ip_dst;
 	/* If the packet is destined to the router or if TTL hit 0:
 		all cases where router needs to build and return an ICMP packet*/	
 	if(in_ip_hdr->ip_ttl <= 0
@@ -212,8 +219,8 @@ int sr_process_ip_payload(struct sr_instance* sr, char* interface, uint8_t* in_i
 				return RC_GENERAL_ERROR;
 			}
 		}
-		*out_ip_packet = build_ip_packet(0, 0, ip_protocol_icmp, out_ip_packet_src_ip, ntohl(in_ip_hdr->ip_src), icmp_pack, out_ip_payload_len);
-		*out_dest_ip = ntohl(in_ip_hdr->ip_src);
+		*out_ip_packet = build_ip_packet(0, 0, ip_protocol_icmp, out_ip_packet_src_ip, in_ip_hdr->ip_src, icmp_pack, out_ip_payload_len);
+		*out_dest_ip = in_ip_hdr->ip_src;
 		
 		if(icmp_pack != NULL){free(icmp_pack);}
 	} else { /* Packet is not destined to the router */
@@ -243,26 +250,25 @@ int sr_process_ip_payload(struct sr_instance* sr, char* interface, uint8_t* in_i
 int sr_process_arp_payload(struct sr_instance* sr, uint8_t* in_arp_packet, int in_arp_packet_len, 
 							uint8_t** out_arp_packet, uint32_t* out_dest_ip){
 	struct sr_arp_hdr* arp_hdr = parse_arp_packet(in_arp_packet);
-	if(ntohs(arp_hdr->ar_op) == arp_op_request){ /*Reply to the request*/
-		unsigned char* router_mac = (unsigned char*)is_router_ip(sr, ntohl(arp_hdr->ar_tip));
+	if(arp_hdr->ar_op == arp_op_request){ /*Reply to the request*/
+		unsigned char* router_mac = (unsigned char*)is_router_ip(sr, arp_hdr->ar_tip);
 		if(router_mac != NULL){/*Only respond to requests destined to the router.*/
-			*out_arp_packet = build_arp_packet(arp_op_reply, router_mac, ntohl(arp_hdr->ar_tip), arp_hdr->ar_sha,
-							ntohl(arp_hdr->ar_sip));
-			*out_dest_ip = ntohl(arp_hdr->ar_sip);
+			*out_arp_packet = build_arp_packet(arp_op_reply, router_mac, arp_hdr->ar_tip, arp_hdr->ar_sha,
+							arp_hdr->ar_sip);
+			*out_dest_ip = arp_hdr->ar_sip;
 			return 0;
 		} else {
-		
+			return RC_ARP_NOT_DESTINED_TO_ROUTER;
 		}
-	} else if(ntohs(arp_hdr->ar_op) == arp_op_reply){/*Insert the reply into the cache*/
-		if(is_router_ip(sr, ntohl(arp_hdr->ar_tip))){/*Only cache replies destined to the router.*/
-			sr_arpcache_insert(&(sr->cache), arp_hdr->ar_sha, ntohl(arp_hdr->ar_sip));
+	} else if(arp_hdr->ar_op == arp_op_reply){/*Insert the reply into the cache*/
+		if(is_router_ip(sr, arp_hdr->ar_tip)){/*Only cache replies destined to the router.*/
+			sr_arpcache_insert(&(sr->cache), arp_hdr->ar_sha, arp_hdr->ar_sip);
 			return RC_INSERTED_INTO_ARP_CACHE;
 		} else {
-		
+			return RC_ARP_NOT_DESTINED_TO_ROUTER;
 		}
-	} else {
-		
-	}						
+	} 
+	
 	return RC_GENERAL_ERROR;
 				
 }
