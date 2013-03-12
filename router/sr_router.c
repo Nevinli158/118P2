@@ -100,7 +100,7 @@ void sr_handlepacket(struct sr_instance* sr,
   
   in_eth_pack = parse_eth_frame(packet, &in_ether_payload);
   if(in_eth_pack->ether_type == ethertype_ip){  /*IP*/
-	int ip_pack_len = len - sizeof(struct sr_ethernet_hdr) - FCS_SIZE; 	/* Subtract out the checksum stuff too? */
+	int ip_pack_len = len - sizeof(struct sr_ethernet_hdr); 	/* Subtract out the checksum stuff too? */
 	int rc = sr_process_ip_payload(sr, interface, in_ether_payload, ip_pack_len, &out_eth_payload, &out_eth_payload_len, &out_dest_ip);
 	printf("*** -> IP Packet \n");
 	if(rc != 0){
@@ -109,7 +109,7 @@ void sr_handlepacket(struct sr_instance* sr,
 	out_eth_type = ethertype_ip;
 	
   } else if(in_eth_pack->ether_type ==  ethertype_arp){/*ARP*/
-	int arp_pack_len = len - sizeof(struct sr_ethernet_hdr) - FCS_SIZE;
+	int arp_pack_len = len - sizeof(struct sr_ethernet_hdr);
 	int rc = sr_process_arp_payload(sr, in_ether_payload, arp_pack_len, &out_eth_payload, &out_dest_ip);
 	printf("*** -> ARP Packet \n");
 	if(rc == RC_INSERTED_INTO_ARP_CACHE){
@@ -127,7 +127,7 @@ void sr_handlepacket(struct sr_instance* sr,
   
 	/*Construct the outgoing ethernet frame and send it off */			
 	
-  	out_eth_pack_len = out_eth_payload_len + sizeof(struct sr_ethernet_hdr) + FCS_SIZE; 	
+  	out_eth_pack_len = out_eth_payload_len + sizeof(struct sr_ethernet_hdr); 	
 	/*Look at ARP cache for the client's MAC */					
 	out_client_mac =  sr_arpcache_lookup( &(sr->cache), out_dest_ip);
 	if(out_client_mac == NULL || out_client_mac->valid == 0){ /* MAC wasn't found, add the packet to the ARP queue */
