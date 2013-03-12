@@ -197,10 +197,10 @@ void print_hdr_ip(uint8_t *buf) {
   fprintf(stderr, "\tchecksum: %d\n", iphdr->ip_sum);
 
   fprintf(stderr, "\tsource: ");
-  print_addr_ip_int(ntohl(iphdr->ip_src));
+  print_addr_ip_int(iphdr->ip_src);
 
   fprintf(stderr, "\tdestination: ");
-  print_addr_ip_int(ntohl(iphdr->ip_dst));
+  print_addr_ip_int(iphdr->ip_dst);
 }
 
 /* Prints out ICMP header fields */
@@ -227,12 +227,12 @@ void print_hdr_arp(uint8_t *buf) {
   fprintf(stderr, "\tsender hardware address: ");
   print_addr_eth(arp_hdr->ar_sha);
   fprintf(stderr, "\tsender ip address: ");
-  print_addr_ip_int(ntohl(arp_hdr->ar_sip));
+  print_addr_ip_int(arp_hdr->ar_sip);
 
   fprintf(stderr, "\ttarget hardware address: ");
   print_addr_eth(arp_hdr->ar_tha);
   fprintf(stderr, "\ttarget ip address: ");
-  print_addr_ip_int(ntohl(arp_hdr->ar_tip));
+  print_addr_ip_int(arp_hdr->ar_tip);
 }
 
 /* Prints out all possible headers, starting from Ethernet 
