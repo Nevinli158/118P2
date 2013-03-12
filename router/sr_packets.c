@@ -126,6 +126,131 @@ uint8_t* build_arp_packet(unsigned short ar_op, unsigned char ar_sha[], uint32_t
 }
 
 
+/* Convert raw packet to host byte order 
+   buf[IN] - raw packet buffer
+   buf[OUT] - packet buffer with byte order converted 
+   return - 0 on success, otherwise error code */
+RC convert_to_host(uint8_t *buf) {
+	sr_ethernet_hdr_t* eth;
+	uint8_t* eth_payload;
+	
+	/* parse ether frame */
+	eth = parse_eth_frame(buf, &eth_payload);
+	eth->ether_type = ntohs(eth->ether_type);
+	/* parse ethernet payload - ip packet */
+	if(eth->ether_type == ethertype_ip) {
+		sr_ip_hdr_t* ip;
+		uint8_t* ip_payload;
+		ip = parse_ip_packet(eth_payload, &ip_payload);
+		
+		/* parse ip payload - icmp */
+		if(ip->ip_p == ip_protocol_icmp) {
+			sr_icmp_hdr_t* icmp;
+			icmp = parse_icmp_packet(ip_payload);
+			
+			/* icmp packet */
+			if(icmp->icmp_type == icmp_type_echo_request) {
+				icmp->icmp_sum = ntohs(icmp->icmp_sum);
+			}
+			/* icmp_t3 packet */
+			else {
+				sr_icmp_t3_hdr_t* icmp_t3;	
+				icmp_t3 = parse_icmp_t3_packet(ip_payload);
+				icmp_t3->icmp_sum = ntohs(icmp_t3->icmp_sum);
+				icmp_t3->unused = ntohs(icmp_t3->unused);
+				icmp_t3->next_mtu = ntohs(icmp_t3->next_mtu);
+			}
+		}
+		
+		/* convert ip headers */
+		ip->ip_len = ntohs(ip->ip_len);
+		ip->ip_id = ntohs(ip->ip_id);
+		ip->ip_off = ntohs(ip->ip_off);
+		ip->ip_sum = ntohs(ip->ip_sum);
+		ip->ip_src = ntohl(ip->ip_src);
+		ip->ip_dst = ntohl(ip->ip_dst);
+	}
+	/* parse ethernet payload - arp packet */
+	else if(eth->ether_type == ethertype_arp) {
+		sr_arp_hdr_t* arp;
+		arp = parse_arp_packet(eth_payload);
+		
+		arp->ar_hrd = ntohs(arp->ar_hrd);
+		arp->ar_pro = ntohs(arp->ar_pro);
+		arp->ar_op = ntohs(arp->ar_op);
+		arp->ar_sip = ntohl(arp->ar_sip);
+		arp->ar_tip = ntohl(arp->ar_tip);
+	}
+	else {
+		return RC_GENERAL_ERROR;
+	}
+	
+	return 0;
+}
+
+/* Convert host-converted packet to network byte order 
+   buf[IN] - host packet buffer
+   buf[OUT] - raw packet buffer with byte order converted 
+   return - 0 on success, otherwise error code */
+RC convert_to_network(uint8_t *buf) {
+	sr_ethernet_hdr_t* eth;
+	uint8_t* eth_payload;
+	
+	/* parse ether frame */
+	eth = parse_eth_frame(buf, &eth_payload);
+	eth->ether_type = htons(eth->ether_type);
+	/* parse ethernet payload - ip packet */
+	if(eth->ether_type == ethertype_ip) {
+		sr_ip_hdr_t* ip;
+		uint8_t* ip_payload;
+		ip = parse_ip_packet(eth_payload, &ip_payload);
+		
+		/* parse ip payload - icmp */
+		if(ip->ip_p == ip_protocol_icmp) {
+			sr_icmp_hdr_t* icmp;
+			icmp = parse_icmp_packet(ip_payload);
+			
+			/* icmp packet */
+			if(icmp->icmp_type == icmp_type_echo_request) {
+				icmp->icmp_sum = htons(icmp->icmp_sum);
+			}
+			/* icmp_t3 packet */
+			else {
+				sr_icmp_t3_hdr_t* icmp_t3;	
+				icmp_t3 = parse_icmp_t3_packet(ip_payload);
+				icmp_t3->icmp_sum = htons(icmp_t3->icmp_sum);
+				icmp_t3->unused = htons(icmp_t3->unused);
+				icmp_t3->next_mtu = htons(icmp_t3->next_mtu);
+			}
+		}
+		
+		/* convert ip headers */
+		ip->ip_len = htons(ip->ip_len);
+		ip->ip_id = htons(ip->ip_id);
+		ip->ip_off = htons(ip->ip_off);
+		ip->ip_sum = htons(ip->ip_sum);
+		ip->ip_src = htonl(ip->ip_src);
+		ip->ip_dst = htonl(ip->ip_dst);
+	}
+	/* parse ethernet payload - arp packet */
+	else if(eth->ether_type == ethertype_arp) {
+		sr_arp_hdr_t* arp;
+		arp = parse_arp_packet(eth_payload);
+		
+		arp->ar_hrd = htons(arp->ar_hrd);
+		arp->ar_pro = htons(arp->ar_pro);
+		arp->ar_op = htons(arp->ar_op);
+		arp->ar_sip = htonl(arp->ar_sip);
+		arp->ar_tip = htonl(arp->ar_tip);
+	}
+	else {
+		return RC_GENERAL_ERROR;
+	}
+	
+	return 0;
+}
+
+
 /* Packet parsing functions */
 sr_ethernet_hdr_t* parse_eth_frame(uint8_t *buf, uint8_t **payload) {
 	*payload = buf + sizeof(sr_ethernet_hdr_t);

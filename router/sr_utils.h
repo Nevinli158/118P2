@@ -29,6 +29,7 @@
 #define SR_UTILS_H
 
 #include "sr_router.h"
+#include "sr_headers.h"
 
 uint16_t cksum(const void *_data, int len);
 typedef int bool;
@@ -53,6 +54,16 @@ uint8_t* build_icmp_t3_packet(uint8_t icmp_type, uint8_t icmp_code, uint8_t* fai
 uint8_t* build_arp_packet(unsigned short ar_op, unsigned char ar_sha[], uint32_t ar_sip, unsigned char ar_tha[],
 							uint32_t ar_tip);
 
+/* Convert raw packet to host byte order 
+   buf[IN] - raw packet buffer
+   buf[OUT] - packet buffer with byte order converted 
+   return - 0 on success, otherwise error code */
+RC convert_to_host(uint8_t *buf);
+/* Convert host-converted packet to network byte order 
+   buf[IN] - host packet buffer
+   buf[OUT] - raw packet buffer with byte order converted 
+   return - 0 on success, otherwise error code */
+RC convert_to_network(uint8_t *buf);
 
 sr_ethernet_hdr_t* parse_eth_frame(uint8_t *buf, uint8_t **payload);
 sr_ip_hdr_t* parse_ip_packet(uint8_t *buf, uint8_t **payload);
