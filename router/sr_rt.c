@@ -32,13 +32,15 @@ bool sr_prefix_match(struct sr_instance* sr, unsigned long ip_addr, char* iface)
 {
 	unsigned long longest_prefix;
 	bool matched;
+	unsigned long ip;
 	struct sr_rt* rt_walker;
 	
 	longest_prefix = 0;
 	matched = false;
+
 	rt_walker = sr->routing_table;
 	while (rt_walker) {
-		if (rt_walker->dest.s_addr == ((rt_walker->mask.s_addr) & (htonl(ip_addr)))) {
+		if (rt_walker->dest.s_addr == ((rt_walker->mask.s_addr) & ip_addr)) {
 			if(rt_walker->dest.s_addr >= longest_prefix) {
 				longest_prefix = rt_walker->dest.s_addr;
 				memcpy(iface, rt_walker->interface, sr_IFACE_NAMELEN);
