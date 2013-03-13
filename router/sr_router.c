@@ -100,18 +100,16 @@ void sr_handlepacket(struct sr_instance* sr,
   
   in_eth_pack = parse_eth_frame(packet, &in_ether_payload);
   if(in_eth_pack->ether_type == ethertype_ip){  /*IP*/
-	int ip_pack_len = len - sizeof(struct sr_ethernet_hdr) - FCS_SIZE; 	/* Subtract out the checksum stuff too? */
+	int ip_pack_len = len - sizeof(struct sr_ethernet_hdr); 	/* Subtract out the checksum stuff too? */
 	int rc = sr_process_ip_payload(sr, interface, in_ether_payload, ip_pack_len, &out_eth_payload, &out_eth_payload_len, &out_dest_ip);
-	printf("*** -> IP Packet \n");
 	if(rc != 0){
 		return;
 	}	
 	out_eth_type = ethertype_ip;
 	
   } else if(in_eth_pack->ether_type ==  ethertype_arp){/*ARP*/
-	int arp_pack_len = len - sizeof(struct sr_ethernet_hdr) - FCS_SIZE;
+	int arp_pack_len = len - sizeof(struct sr_ethernet_hdr);
 	int rc = sr_process_arp_payload(sr, in_ether_payload, arp_pack_len, &out_eth_payload, &out_dest_ip);
-	printf("*** -> ARP Packet \n");
 	if(rc == RC_INSERTED_INTO_ARP_CACHE){
 		return;
 	} else if(rc == RC_ARP_NOT_DESTINED_TO_ROUTER){
@@ -127,16 +125,14 @@ void sr_handlepacket(struct sr_instance* sr,
   
 	/*Construct the outgoing ethernet frame and send it off */			
 	
-  	out_eth_pack_len = out_eth_payload_len + sizeof(struct sr_ethernet_hdr) + FCS_SIZE; 	
+  	out_eth_pack_len = out_eth_payload_len + sizeof(struct sr_ethernet_hdr); 	
 	/*Look at ARP cache for the client's MAC */					
 	out_client_mac =  sr_arpcache_lookup( &(sr->cache), out_dest_ip);
 	if(out_client_mac == NULL || out_client_mac->valid == 0){ /* MAC wasn't found, add the packet to the ARP queue */
 		uint8_t ether_dhost = 0;
 		out_eth_pack = build_eth_frame(&ether_dhost,interface_if->addr,out_eth_type, out_eth_payload, out_eth_payload_len);
-		struct sr_arpreq *arpreq = 
 		sr_arpcache_queuereq( &(sr->cache), out_dest_ip, out_eth_pack, out_eth_pack_len, interface);
 		
-		if(arpreq != 0){free(arpreq);}
 	} else { /*MAC was found, send the packet off back to original client */
 		char outgoing[sr_IFACE_NAMELEN];
 		struct sr_if* outgoing_if = NULL;
@@ -254,6 +250,7 @@ int sr_process_arp_payload(struct sr_instance* sr, uint8_t* in_arp_packet, int i
 	struct sr_arp_hdr* arp_hdr = parse_arp_packet(in_arp_packet);
 	if(arp_hdr->ar_op == arp_op_request){ /*Reply to the request*/
 		unsigned char* router_mac = (unsigned char*)is_router_ip(sr, arp_hdr->ar_tip);
+		printf("*** -> ARP Request Packet \n");
 		if(router_mac != NULL){/*Only respond to requests destined to the router.*/
 			*out_arp_packet = build_arp_packet(arp_op_reply, router_mac, arp_hdr->ar_tip, arp_hdr->ar_sha,
 							arp_hdr->ar_sip);
@@ -263,6 +260,7 @@ int sr_process_arp_payload(struct sr_instance* sr, uint8_t* in_arp_packet, int i
 			return RC_ARP_NOT_DESTINED_TO_ROUTER;
 		}
 	} else if(arp_hdr->ar_op == arp_op_reply){/*Insert the reply into the cache*/
+		printf("*** -> ARP Reply Packet \n");
 		if(is_router_ip(sr, arp_hdr->ar_tip)){/*Only cache replies destined to the router.*/
 			sr_arpcache_insert(&(sr->cache), arp_hdr->ar_sha, arp_hdr->ar_sip);
 			return RC_INSERTED_INTO_ARP_CACHE;

@@ -19,7 +19,8 @@
   See the comments in the header file for an idea of what it should look like.
 */
 void sr_arpcache_sweepreqs(struct sr_instance *sr) { 
-	struct sr_arpreq *req = sr->cache.requests;
+	struct sr_arpreq *req;
+	req = sr->cache.requests;
 	/*For each entry in sr->cache->requests (linked list of requests)*/
 	while(req != NULL){
 		if(req->times_sent < 5){
@@ -56,7 +57,7 @@ void sr_arpcache_sweepreqs(struct sr_instance *sr) {
 				struct sr_if* iface; 
 				int ip_payload_len = sizeof(struct sr_icmp_t3_hdr);
 				int eth_payload_len = ip_payload_len + sizeof(struct sr_ip_hdr);
-				unsigned int eth_pack_len = eth_payload_len + sizeof(struct sr_ethernet_hdr) + 2; /* */
+				unsigned int eth_pack_len = eth_payload_len + sizeof(struct sr_ethernet_hdr); /* */
 				
 				failed_pack_eth_hdr = parse_eth_frame(request_pack->buf, &failed_ip_pack);
 				failed_pack_ip_hdr = parse_ip_packet(failed_ip_pack, &failed_ip_payload);
@@ -74,9 +75,7 @@ void sr_arpcache_sweepreqs(struct sr_instance *sr) {
 				client_mac =  sr_arpcache_lookup( &(sr->cache), failed_pack_ip_hdr->ip_src);
 				if(client_mac == NULL || client_mac->valid == 0){ /* MAC wasn't found, add the packet to the ARP queue */
 					eth_pack = build_eth_frame(0,iface->addr,ethertype_ip, ip_pack, eth_payload_len);
-					struct sr_arpreq *arpreq = 
 					sr_arpcache_queuereq( &(sr->cache), failed_pack_ip_hdr->ip_src, eth_pack, eth_pack_len, iface->name);
-					if(arpreq != 0){free(arpreq);}
 				} else { /*MAC was found, send the packet off */
 					eth_pack = build_eth_frame(client_mac->mac,iface->addr,ethertype_ip, ip_pack, eth_payload_len);
 					sr_send_packet(sr, eth_pack, eth_pack_len , request_pack->iface);

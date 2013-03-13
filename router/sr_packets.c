@@ -11,20 +11,16 @@
 uint8_t* build_eth_frame(uint8_t *ether_dhost, uint8_t *ether_shost, uint16_t ether_type, uint8_t *data, int datalen) {
 	uint8_t* buf;
 	int packet_length;
-	uint32_t checksum;
 	struct sr_ethernet_hdr hdr;
 	memcpy(hdr.ether_dhost,ether_dhost,ETHER_ADDR_LEN); /* destination ethernet address */
 	memcpy(hdr.ether_shost,ether_shost,ETHER_ADDR_LEN); /* source ethernet address */
     hdr.ether_type = ether_type;                     /* packet type ID */
 	
-	packet_length = sizeof(sr_ethernet_hdr_t) + (sizeof(uint8_t) * datalen) + FCS_SIZE;
+	packet_length = sizeof(sr_ethernet_hdr_t) + (sizeof(uint8_t) * datalen);
 	/* Packet */
 	buf = (uint8_t*) malloc (packet_length);
 	memcpy (buf, &hdr, sizeof(sr_ethernet_hdr_t));
 	memcpy (buf + sizeof(sr_ethernet_hdr_t), data, datalen);
-	/* Checksum */
-	checksum = cksum(buf, packet_length - FCS_SIZE);
-	memcpy (buf + packet_length - FCS_SIZE, &checksum, FCS_SIZE);
 	
 	return buf;
 }

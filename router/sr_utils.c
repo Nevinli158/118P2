@@ -22,7 +22,7 @@ uint16_t cksum (const void *_data, int len) {
 }
 
 /* buf - ethernet frame
-   buflen - length of frame */
+   buflen - length of frame 
 bool verify_eth_cksum (uint8_t *buf, int buflen) {
 	uint32_t checksum;
 	
@@ -33,7 +33,7 @@ bool verify_eth_cksum (uint8_t *buf, int buflen) {
 	else {
 		return false;
 	}
-}
+}*/
 
 /* buf - ip packet
    buflen - length of packet */
