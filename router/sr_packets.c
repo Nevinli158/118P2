@@ -36,14 +36,9 @@ uint8_t* build_ip_packet(uint16_t ip_id, uint16_t ip_off, uint8_t ip_p, uint32_t
 	uint16_t checksum;
 	
 	struct sr_ip_hdr hdr;
-	#if __BYTE_ORDER == __LITTLE_ENDIAN
-		hdr.ip_hl = 4;		/* actually the version */
-		hdr.ip_v = 5;		/* actually the header length */
-	#else
-		hdr.ip_hl = 5;		/* header length */
-		hdr.ip_v = 4;		/* version */
-	#endif 
-	
+
+	hdr.ip_hl = 5;		/* header length */
+	hdr.ip_v = 4;		/* version */
     hdr.ip_tos = 0;			/* type of service */
     hdr.ip_id = ip_id;			/* identification */
     hdr.ip_off = ip_off;			/* fragment offset field */
