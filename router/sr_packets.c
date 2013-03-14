@@ -218,12 +218,7 @@ RC convert_to_network(uint8_t *buf) {
 		}
 		
 		/* convert ip headers */
-		ip->ip_len = htons(ip->ip_len);
-		ip->ip_id = htons(ip->ip_id);
-		ip->ip_off = htons(ip->ip_off);
-		ip->ip_sum = htons(ip->ip_sum);
-		/*ip->ip_src = htonl(ip->ip_src);*/
-		/*ip->ip_dst = htonl(ip->ip_dst);*/
+		convert_ip_to_network(ip);
 	}
 	/* parse ethernet payload - arp packet */
 	else if(eth->ether_type == ethertype_arp) {
@@ -244,6 +239,15 @@ RC convert_to_network(uint8_t *buf) {
 	return 0;
 }
 
+void convert_ip_to_network(sr_ip_hdr_t* ip) {
+	/* convert ip headers */
+	ip->ip_len = htons(ip->ip_len);
+	ip->ip_id = htons(ip->ip_id);
+	ip->ip_off = htons(ip->ip_off);
+	ip->ip_sum = htons(ip->ip_sum);
+	/*ip->ip_src = htonl(ip->ip_src);*/
+	/*ip->ip_dst = htonl(ip->ip_dst);*/
+}
 
 /* Packet parsing functions */
 sr_ethernet_hdr_t* parse_eth_frame(uint8_t *buf, uint8_t **payload) {

@@ -64,6 +64,7 @@ RC convert_to_host(uint8_t *buf);
    buf[OUT] - raw packet buffer with byte order converted 
    return - 0 on success, otherwise error code */
 RC convert_to_network(uint8_t *buf);
+void convert_ip_to_network(sr_ip_hdr_t* ip);
 
 sr_ethernet_hdr_t* parse_eth_frame(uint8_t *buf, uint8_t **payload);
 sr_ip_hdr_t* parse_ip_packet(uint8_t *buf, uint8_t **payload);

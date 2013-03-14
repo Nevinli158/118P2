@@ -45,6 +45,7 @@ bool verify_ip_cksum (uint8_t *buf, int buflen) {
 	buf_cpy = (uint8_t *) malloc (buflen);
 	memcpy (buf_cpy, buf, buflen);
 	((sr_ip_hdr_t *) buf_cpy)->ip_sum = 0;
+	convert_ip_to_network((sr_ip_hdr_t *) buf_cpy);
 	/* Compute checksum and check against checksum field in packet */
 	checksum = cksum (buf_cpy, buflen);
 	
