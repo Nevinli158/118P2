@@ -23,6 +23,7 @@ void sr_arpcache_sweepreqs(struct sr_instance *sr) {
 	req = sr->cache.requests;
 	/*For each entry in sr->cache->requests (linked list of requests)*/
 	while(req != NULL){
+		Debug("Request previously sent %d times \n", req->times_sent);
 		if(req->times_sent < 5){
 			/*If the request was sent less than 5 times, send the request. (function is such that a request is sent every minute)*/
 			uint8_t *arp_pack, *eth_pack;
@@ -41,6 +42,7 @@ void sr_arpcache_sweepreqs(struct sr_instance *sr) {
 		} else { /*If the request was sent 5 times: */
 			struct sr_packet *request_pack = req->packets;
 			struct sr_arpreq *temp = req;
+			
 			/*For each packet depending on this ARP (sr_packet)*/
 			while(request_pack != NULL){
 				uint8_t* failed_ip_pack = NULL;/*The client's packet that could not be sent*/
@@ -49,14 +51,14 @@ void sr_arpcache_sweepreqs(struct sr_instance *sr) {
 				uint8_t* failed_ip_payload = NULL;
 				uint8_t* icmp_pack, *ip_pack, *eth_pack;
 				struct sr_arpentry *client_mac;
-				char* char_iface = NULL;
+				char char_iface[sr_IFACE_NAMELEN];
 				struct sr_if* iface; 
 				int ip_payload_len = sizeof(struct sr_icmp_t3_hdr);
 				int eth_payload_len = ip_payload_len + sizeof(struct sr_ip_hdr);
 				unsigned int eth_pack_len = eth_payload_len + sizeof(struct sr_ethernet_hdr); /* */
-				
 				failed_pack_eth_hdr = parse_eth_frame(request_pack->buf, &failed_ip_pack);
 				failed_pack_ip_hdr = parse_ip_packet(failed_ip_pack, &failed_ip_payload);
+				Debug("   Packet: srcip: %x, dstip: %x\n", failed_pack_ip_hdr->ip_src, failed_pack_ip_hdr->ip_dst);
 				if(sr_prefix_match(sr, failed_pack_ip_hdr->ip_src, char_iface) == false){
 					Debug("Prefix matching failed");
 					request_pack = request_pack->next;
@@ -86,6 +88,7 @@ void sr_arpcache_sweepreqs(struct sr_instance *sr) {
 			req = req->next;
 			/*remove the request from the queue*/
 			sr_arpreq_destroy(&(sr->cache), temp);
+			Debug("Request sent 5 times, destroying request \n");
 		}
 	}
 }

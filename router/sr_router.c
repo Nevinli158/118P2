@@ -13,6 +13,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <assert.h>
 
 
@@ -226,7 +227,8 @@ int sr_process_ip_payload(struct sr_instance* sr, char* interface, uint8_t* in_i
 		if(icmp_pack != NULL){free(icmp_pack);}
 	} else { /* Packet is not destined to the router */
 		printf("*** -> IP Packet not destined for router \n");
-		*out_ip_packet = in_ip_packet;
+		*out_ip_packet = malloc(in_ip_packet_len);
+		memcpy(*out_ip_packet, in_ip_packet, in_ip_packet_len);
 		*out_dest_ip = in_ip_hdr_ip_dst;
 		out_ip_payload_len = in_ip_packet_len;
 	}
@@ -266,7 +268,13 @@ int sr_process_arp_payload(struct sr_instance* sr, uint8_t* in_arp_packet, int i
 	} else if(arp_hdr->ar_op == arp_op_reply){/*Insert the reply into the cache*/
 		printf("*** -> ARP Reply Packet \n");
 		if(is_router_ip(sr, arp_hdr->ar_tip)){/*Only cache replies destined to the router.*/
-			sr_arpcache_insert(&(sr->cache), arp_hdr->ar_sha, arp_hdr->ar_sip);
+			struct sr_arpreq *requests = sr_arpcache_insert(&(sr->cache), arp_hdr->ar_sha, arp_hdr->ar_sip);
+			struct sr_packet *next_packet = requests->packets;
+			while(next_packet != NULL){
+				sr_handlepacket(sr, next_packet->buf, next_packet->len, next_packet->iface);
+				next_packet = next_packet->next;
+			}
+			sr_arpreq_destroy(&(sr->cache),requests);
 			return RC_INSERTED_INTO_ARP_CACHE;
 		} else {
 			return RC_ARP_NOT_DESTINED_TO_ROUTER;
