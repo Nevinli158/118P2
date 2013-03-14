@@ -96,7 +96,7 @@ uint8_t* build_icmp_t3_packet(uint8_t icmp_type, uint8_t icmp_code, uint8_t* fai
 	return buf;
 }
 
-uint8_t* build_arp_packet(unsigned short ar_op, unsigned char ar_sha[], uint32_t ar_sip, unsigned char ar_tha[],
+uint8_t* build_arp_packet(unsigned short ar_op, unsigned char ar_sha[], uint32_t ar_sip, const unsigned char ar_tha[],
 							uint32_t ar_tip) {
 	uint8_t* buf;
 	struct sr_arp_hdr hdr;

@@ -112,7 +112,7 @@ uint8_t ip_protocol(uint8_t *buf) {
 }
 
 /* Returns the MAC address corresponding to the IP, NULL if none */
-char* is_router_ip(struct sr_instance* sr, uint32_t ip){
+unsigned char* is_router_ip(struct sr_instance* sr, uint32_t ip){
 	struct sr_if* if_walker = sr->if_list;
 	
 	while(if_walker) {

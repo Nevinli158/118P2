@@ -34,8 +34,8 @@ void sr_arpcache_sweepreqs(struct sr_instance *sr) {
 				buf[i] = 0xff;
 			}
 			if(iface == 0){ Debug("sr_arpcache_sweepreqs<5: get_interface returned null"); }
-			arp_pack = build_arp_packet(arp_op_request, iface->addr, iface->ip, buf, req->ip);
-			eth_pack = build_eth_frame(buf,iface->addr,ethertype_arp, arp_pack, sizeof(struct sr_arp_hdr));
+			arp_pack = build_arp_packet(arp_op_request, iface->addr, iface->ip, BCAST_MAC_ADDR, req->ip);
+			eth_pack = build_eth_frame((uint8_t*)BCAST_MAC_ADDR,iface->addr,ethertype_arp, arp_pack, sizeof(struct sr_arp_hdr));
 			sr_send_packet(sr, eth_pack, sizeof(struct sr_arp_hdr)+sizeof(struct sr_ethernet_hdr), request_pack->iface);
 			req->times_sent++;
 			
