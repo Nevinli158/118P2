@@ -28,11 +28,7 @@ void sr_arpcache_sweepreqs(struct sr_instance *sr) {
 			uint8_t *arp_pack, *eth_pack;
 			struct sr_packet *request_pack = req->packets;
 			struct sr_if* iface = sr_get_interface(sr,request_pack->iface);
-			unsigned char buf[6]; 
-			int i;
-			for(i = 0; i < 6; i++){
-				buf[i] = 0xff;
-			}
+
 			if(iface == 0){ Debug("sr_arpcache_sweepreqs<5: get_interface returned null"); }
 			arp_pack = build_arp_packet(arp_op_request, iface->addr, iface->ip, BCAST_MAC_ADDR, req->ip);
 			eth_pack = build_eth_frame((uint8_t*)BCAST_MAC_ADDR,iface->addr,ethertype_arp, arp_pack, sizeof(struct sr_arp_hdr));
