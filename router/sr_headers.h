@@ -16,5 +16,6 @@ static const unsigned int MIN_IP = sizeof(sr_ip_hdr_t);
 static const unsigned int MIN_ETH = sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t) + 4;
 static const unsigned int MIN_ARP = sizeof(sr_arp_hdr_t);
 
+static const unsigned char BCAST_MAC_ADDR[6] = {0xff,0xff,0xff,0xff,0xff,0xff};
 
 #endif /* -- SR_HEADERS_H -- */

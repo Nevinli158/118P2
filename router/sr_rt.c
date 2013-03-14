@@ -32,7 +32,6 @@ bool sr_prefix_match(struct sr_instance* sr, unsigned long ip_addr, char* iface)
 {
 	unsigned long longest_prefix;
 	bool matched;
-	unsigned long ip;
 	struct sr_rt* rt_walker;
 	
 	longest_prefix = 0;
