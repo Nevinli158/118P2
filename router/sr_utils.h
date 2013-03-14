@@ -40,7 +40,7 @@ bool verify_ip_cksum (uint8_t *buf, int buflen);
 bool verify_icmp_cksum (uint8_t *buf);
 bool verify_icmp_t3_cksum (uint8_t *buf);
 /* Returns the MAC address corresponding to the IP, NULL if none */
-char* is_router_ip(struct sr_instance* sr, uint32_t ip); 
+unsigned char* is_router_ip(struct sr_instance* sr, uint32_t ip); 
 
 uint16_t ethertype(uint8_t *buf);
 uint8_t ip_protocol(uint8_t *buf);
@@ -64,7 +64,6 @@ RC convert_to_host(uint8_t *buf);
    buf[OUT] - raw packet buffer with byte order converted 
    return - 0 on success, otherwise error code */
 RC convert_to_network(uint8_t *buf);
-void convert_ip_to_network(sr_ip_hdr_t* ip);
 
 sr_ethernet_hdr_t* parse_eth_frame(uint8_t *buf, uint8_t **payload);
 sr_ip_hdr_t* parse_ip_packet(uint8_t *buf, uint8_t **payload);

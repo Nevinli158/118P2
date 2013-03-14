@@ -41,9 +41,11 @@ uint8_t* build_ip_packet(uint16_t ip_id, uint16_t ip_off, uint8_t ip_p, uint32_t
     hdr.ip_ttl = 64;			/* time to live */
     hdr.ip_p = ip_p;			/* protocol */
     hdr.ip_sum = 0;			/* checksum is zeroed out for checksum computation */
-    hdr.ip_src = ip_src;
-	hdr.ip_dst = ip_dst;	/* source and dest address */
+    hdr.ip_src = ntohl(ip_src);	/* source and dest address */
+	hdr.ip_dst = ntohl(ip_dst);	/* need to convert to host order for checksum calculation */
 	checksum = cksum((void*)(&hdr), sizeof(struct sr_ip_hdr));
+	hdr.ip_src = htonl(ip_src);
+	hdr.ip_dst = htonl(ip_dst);
 	hdr.ip_sum = checksum;
 	packet_length = sizeof(sr_ip_hdr_t) + (sizeof(uint8_t) * datalen);
 	hdr.ip_len = packet_length;			/* total length */
@@ -216,9 +218,14 @@ RC convert_to_network(uint8_t *buf) {
 				icmp_t3->next_mtu = htons(icmp_t3->next_mtu);
 			}
 		}
-		
+
 		/* convert ip headers */
-		convert_ip_to_network(ip);
+		ip->ip_len = htons(ip->ip_len);
+		ip->ip_id = htons(ip->ip_id);
+		ip->ip_off = htons(ip->ip_off);
+		ip->ip_sum = htons(ip->ip_sum);
+		/*ip->ip_src = htonl(ip->ip_src);*/
+		/*ip->ip_dst = htonl(ip->ip_dst);*/
 	}
 	/* parse ethernet payload - arp packet */
 	else if(eth->ether_type == ethertype_arp) {
@@ -237,16 +244,6 @@ RC convert_to_network(uint8_t *buf) {
 	
 	eth->ether_type = htons(eth->ether_type);
 	return 0;
-}
-
-void convert_ip_to_network(sr_ip_hdr_t* ip) {
-	/* convert ip headers */
-	ip->ip_len = htons(ip->ip_len);
-	ip->ip_id = htons(ip->ip_id);
-	ip->ip_off = htons(ip->ip_off);
-	ip->ip_sum = htons(ip->ip_sum);
-	/*ip->ip_src = htonl(ip->ip_src);*/
-	/*ip->ip_dst = htonl(ip->ip_dst);*/
 }
 
 /* Packet parsing functions */
