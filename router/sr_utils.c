@@ -47,8 +47,7 @@ bool verify_ip_cksum (uint8_t *buf, int buflen) {
 	memcpy (buf_cpy, buf, buflen);
 	ip = (sr_ip_hdr_t *) buf_cpy;
 	ip->ip_sum = 0;
-	ip->ip_src = ntohl(ip->ip_src);
-	ip->ip_dst = ntohl(ip->ip_dst);
+	convert_ip_to_network(buf_cpy);
 	/* Compute checksum and check against checksum field in packet */
 	checksum = cksum (buf_cpy, buflen);
 	
@@ -71,6 +70,7 @@ bool verify_icmp_cksum (uint8_t *buf) {
 	buf_cpy = (uint8_t *) malloc (buflen);
 	memcpy (buf_cpy, buf, buflen);
 	((sr_icmp_hdr_t *) buf_cpy)->icmp_sum = 0;
+	convert_icmp_to_network(buf_cpy);
 	/* Compute checksum and check against checksum field in packet */
 	checksum = cksum (buf_cpy, buflen);
 	

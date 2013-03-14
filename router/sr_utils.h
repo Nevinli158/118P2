@@ -65,6 +65,9 @@ RC convert_to_host(uint8_t *buf);
    return - 0 on success, otherwise error code */
 RC convert_to_network(uint8_t *buf);
 
+void convert_ip_to_network(uint8_t *eth_payload);
+void convert_icmp_to_network(uint8_t *ip_payload);
+
 sr_ethernet_hdr_t* parse_eth_frame(uint8_t *buf, uint8_t **payload);
 sr_ip_hdr_t* parse_ip_packet(uint8_t *buf, uint8_t **payload);
 sr_icmp_hdr_t* parse_icmp_packet(uint8_t *buf);
