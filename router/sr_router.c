@@ -100,7 +100,7 @@ void sr_handlepacket(struct sr_instance* sr,
   
   in_eth_pack = parse_eth_frame(packet, &in_ether_payload);
   if(in_eth_pack->ether_type == ethertype_ip){  /*IP*/
-	int ip_pack_len = len - sizeof(struct sr_ethernet_hdr); 	/* Subtract out the checksum stuff too? */
+	int ip_pack_len = len - sizeof(struct sr_ethernet_hdr); 	
 	int rc = sr_process_ip_payload(sr, interface, in_ether_payload, ip_pack_len, &out_eth_payload, &out_eth_payload_len, &out_dest_ip);
 	if(rc != 0){
 		return;
@@ -192,6 +192,7 @@ int sr_process_ip_payload(struct sr_instance* sr, char* interface, uint8_t* in_i
 		/* Build the ICMP packet depending on the circumstances */
 		if(in_ip_hdr->ip_ttl <= 0){ /* If the packet is out of hops */
 			/* Time exceeded */
+			printf("*** -> IP Packet, out of hops \n");
 			icmp_pack = build_icmp_packet(11,0);
 			out_ip_payload_len = sizeof(struct sr_icmp_hdr);
 			if(is_router_ip(sr, in_ip_hdr_ip_dst)){ 
@@ -203,10 +204,12 @@ int sr_process_ip_payload(struct sr_instance* sr, char* interface, uint8_t* in_i
 			}
 		} else if(in_ip_hdr->ip_p != ip_protocol_icmp){ /* Received a non ICMP packet destined for a router interface */
 			/* Port unreachable */
+			printf("*** -> IP Packet, TCP/UDP Payload \n");
 			icmp_pack = build_icmp_t3_packet(3,3, in_ip_payload);
 			out_ip_payload_len = sizeof(struct sr_icmp_t3_hdr);
 			out_ip_packet_src_ip = in_ip_hdr_ip_dst;
 		} else { /* Received an ICMP packet destined for a router interface */
+			printf("*** -> IP Packet, ICMP destined for router \n");
 			sr_icmp_hdr_t* icmp_hdr = parse_icmp_packet(in_ip_payload);
 			if(icmp_hdr->icmp_type == icmp_type_echo_request){
 				/* Echo reply */
@@ -222,6 +225,7 @@ int sr_process_ip_payload(struct sr_instance* sr, char* interface, uint8_t* in_i
 		
 		if(icmp_pack != NULL){free(icmp_pack);}
 	} else { /* Packet is not destined to the router */
+		printf("*** -> IP Packet not destined for router \n");
 		*out_ip_packet = in_ip_packet;
 		*out_dest_ip = in_ip_hdr_ip_dst;
 		out_ip_payload_len = in_ip_packet_len;
