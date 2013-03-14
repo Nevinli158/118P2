@@ -172,6 +172,8 @@ RC convert_to_host(uint8_t *buf) {
 		/*arp->ar_tip = ntohl(arp->ar_tip);*/
 	}
 	else {
+		/* change the ether_type back if there is an error */
+		eth->ether_type = htons(eth->ether_type);
 		return RC_GENERAL_ERROR;
 	}
 	
@@ -188,7 +190,8 @@ RC convert_to_network(uint8_t *buf) {
 	
 	/* parse ether frame */
 	eth = parse_eth_frame(buf, &eth_payload);
-	eth->ether_type = htons(eth->ether_type);
+	/* do not convert ether_type to network byte order yet, 
+	   need to use it in host order first */
 	/* parse ethernet payload - ip packet */
 	if(eth->ether_type == ethertype_ip) {
 		sr_ip_hdr_t* ip;
@@ -237,6 +240,7 @@ RC convert_to_network(uint8_t *buf) {
 		return RC_GENERAL_ERROR;
 	}
 	
+	eth->ether_type = htons(eth->ether_type);
 	return 0;
 }
 
