@@ -54,7 +54,7 @@ uint8_t* build_ip_packet(uint16_t ip_id, uint16_t ip_off, uint8_t ip_p, uint32_t
 	/* convert packet to network byte order before calculating checksum */
 	convert_ip_to_network(buf, false);
 	checksum = cksum(buf, packet_length);	
-	((sr_ip_hdr_t *)buf)->ip_sum = htons(checksum);
+	((sr_ip_hdr_t *)buf)->ip_sum = checksum;
 	convert_ip_to_host(buf, false);
 	
 	return buf;
