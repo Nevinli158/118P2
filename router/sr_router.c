@@ -83,7 +83,7 @@ void sr_handlepacket(struct sr_instance* sr,
 	unsigned int out_eth_pack_len; 
 	unsigned int out_eth_type; 
 	uint8_t *out_eth_pack = NULL;
-  struct sr_if* interface_if = sr_get_interface(sr, interface);	
+
   /* REQUIRES */
   assert(sr);
   assert(packet);
@@ -131,6 +131,7 @@ void sr_handlepacket(struct sr_instance* sr,
 	out_client_mac =  sr_arpcache_lookup( &(sr->cache), out_dest_ip);
 	if(out_client_mac == NULL || out_client_mac->valid == 0){ /* MAC wasn't found, add the packet to the ARP queue */
 		uint8_t ether_dhost = 0;
+		struct sr_if* interface_if = sr_get_interface(sr, interface);	
 		out_eth_pack = build_eth_frame(&ether_dhost,interface_if->addr,out_eth_type, out_eth_payload, out_eth_payload_len);
 		sr_arpcache_queuereq( &(sr->cache), out_dest_ip, out_eth_pack, out_eth_pack_len, interface);
 		

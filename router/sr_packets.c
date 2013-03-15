@@ -41,8 +41,8 @@ uint8_t* build_ip_packet(uint16_t ip_id, uint16_t ip_off, uint8_t ip_p, uint32_t
     hdr.ip_ttl = 64;			/* time to live */
     hdr.ip_p = ip_p;			/* protocol */
     hdr.ip_sum = 0;			/* checksum is zeroed out for checksum computation */
-    hdr.ip_src = htonl(ip_src);	/* source and dest address */
-	hdr.ip_dst = htonl(ip_dst);
+    hdr.ip_src = ip_src;	/* source and dest address */
+	hdr.ip_dst = ip_dst;
 	
 	packet_length = sizeof(sr_ip_hdr_t) + (sizeof(uint8_t) * datalen);
 	hdr.ip_len = packet_length;			/* total length */
