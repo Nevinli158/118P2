@@ -41,18 +41,25 @@ uint8_t* build_ip_packet(uint16_t ip_id, uint16_t ip_off, uint8_t ip_p, uint32_t
     hdr.ip_ttl = 64;			/* time to live */
     hdr.ip_p = ip_p;			/* protocol */
     hdr.ip_sum = 0;			/* checksum is zeroed out for checksum computation */
-    hdr.ip_src = ntohl(ip_src);	/* source and dest address */
-	hdr.ip_dst = ntohl(ip_dst);	/* need to convert to host order for checksum calculation */
-	checksum = cksum((void*)(&hdr), sizeof(struct sr_ip_hdr));
-	hdr.ip_src = htonl(ip_src);
-	hdr.ip_dst = htonl(ip_dst);
-	hdr.ip_sum = checksum;
+    /*hdr.ip_src = ntohl(ip_src);	 source and dest address */
+	/*hdr.ip_dst = ntohl(ip_dst);	 need to convert to host order for checksum calculation */
+	
 	packet_length = sizeof(sr_ip_hdr_t) + (sizeof(uint8_t) * datalen);
 	hdr.ip_len = packet_length;			/* total length */
 	
 	buf = (uint8_t*) malloc (packet_length);
 	memcpy (buf, &hdr, sizeof(sr_ip_hdr_t));
 	memcpy (buf + sizeof(sr_ip_hdr_t), data, datalen);
+	
+	/* convert packet to network byte order before calculating checksum */
+	convert_ip_to_network(buf, false);
+	checksum = cksum(buf, packet_length);	
+	hdr.ip_sum = htons(checksum);
+	/*
+	hdr.ip_src = htonl(ip_src);
+	hdr.ip_dst = htonl(ip_dst);
+	*/
+	convert_ip_to_host(buf, false);
 	
 	return buf;
 }
@@ -66,11 +73,15 @@ uint8_t* build_icmp_packet(uint8_t icmp_type, uint8_t icmp_code) {
 	hdr.icmp_type = icmp_type;
 	hdr.icmp_code = icmp_code;
 	hdr.icmp_sum = 0;	/* checksum is zeroed out for checksum computation */
-	checksum = cksum((void*)(&hdr), sizeof(struct sr_icmp_hdr));
-	hdr.icmp_sum = checksum;
 	
 	buf = (uint8_t*) malloc (sizeof(sr_icmp_hdr_t));
 	memcpy (buf, &hdr, sizeof(sr_icmp_hdr_t));
+	
+	convert_icmp_to_network(buf, false);
+	checksum = cksum(buf, sizeof(struct sr_icmp_hdr));
+	hdr.icmp_sum = htons(checksum);
+	convert_icmp_to_host(buf, false);
+	
 	return buf;
 }
 
@@ -90,11 +101,14 @@ uint8_t* build_icmp_t3_packet(uint8_t icmp_type, uint8_t icmp_code, uint8_t* fai
 	memcpy(&hdr.data,failed_ip_packet,sizeof(struct sr_ip_hdr));/*Data has IP header + 1st 8 bytes of payload */
 	memcpy((&hdr.data)+sizeof(struct sr_ip_hdr),failed_ip_packet,8);
 	
-	checksum = cksum((void*)(&hdr), sizeof(struct sr_icmp_t3_hdr));
-	hdr.icmp_sum = checksum;
-	
 	buf = (uint8_t*) malloc (sizeof(sr_icmp_t3_hdr_t));
 	memcpy (buf, &hdr, sizeof(sr_icmp_t3_hdr_t));
+	
+	convert_icmp_to_network(buf, false);
+	checksum = cksum(buf, sizeof(struct sr_icmp_t3_hdr));
+	hdr.icmp_sum = htons(checksum);
+	convert_icmp_to_host(buf, false);
+	
 	return buf;
 }
 
@@ -131,36 +145,7 @@ RC convert_to_host(uint8_t *buf) {
 	eth->ether_type = ntohs(eth->ether_type);
 	/* parse ethernet payload - ip packet */
 	if(eth->ether_type == ethertype_ip) {
-		sr_ip_hdr_t* ip;
-		uint8_t* ip_payload;
-		ip = parse_ip_packet(eth_payload, &ip_payload);
-		
-		/* parse ip payload - icmp */
-		if(ip->ip_p == ip_protocol_icmp) {
-			sr_icmp_hdr_t* icmp;
-			icmp = parse_icmp_packet(ip_payload);
-			
-			/* icmp packet */
-			if(icmp->icmp_type == icmp_type_echo_request) {
-				/* icmp->icmp_sum = ntohs(icmp->icmp_sum); */
-			}
-			/* icmp_t3 packet */
-			else {
-				sr_icmp_t3_hdr_t* icmp_t3;	
-				icmp_t3 = parse_icmp_t3_packet(ip_payload);
-				/* icmp_t3->icmp_sum = ntohs(icmp_t3->icmp_sum); */
-				icmp_t3->unused = ntohs(icmp_t3->unused);
-				icmp_t3->next_mtu = ntohs(icmp_t3->next_mtu);
-			}
-		}
-		
-		/* convert ip headers */
-		ip->ip_len = ntohs(ip->ip_len);
-		ip->ip_id = ntohs(ip->ip_id);
-		ip->ip_off = ntohs(ip->ip_off);
-		/*ip->ip_sum = ntohs(ip->ip_sum);*/
-		/*ip->ip_src = ntohl(ip->ip_src);*/
-		/*ip->ip_dst = ntohl(ip->ip_dst);*/
+		convert_ip_to_host(eth_payload, false);
 	}
 	/* parse ethernet payload - arp packet */
 	else if(eth->ether_type == ethertype_arp) {
@@ -181,6 +166,52 @@ RC convert_to_host(uint8_t *buf) {
 	
 	return 0;
 }
+void convert_ip_to_host(uint8_t *eth_payload, bool failed) {
+	sr_ip_hdr_t* ip;
+	uint8_t* ip_payload;
+	ip = parse_ip_packet(eth_payload, &ip_payload);
+	
+	/* parse ip payload - icmp */
+	if(ip->ip_p == ip_protocol_icmp) {
+		convert_icmp_to_host(ip_payload, failed);
+	}
+	
+	/* convert ip headers */
+	ip->ip_len = ntohs(ip->ip_len);
+	ip->ip_id = ntohs(ip->ip_id);
+	ip->ip_off = ntohs(ip->ip_off);
+	/*ip->ip_sum = ntohs(ip->ip_sum);*/
+	/*ip->ip_src = ntohl(ip->ip_src);*/
+	/*ip->ip_dst = ntohl(ip->ip_dst);*/
+}
+void convert_icmp_to_host(uint8_t *ip_payload, bool failed) {
+	sr_icmp_hdr_t* icmp;
+	icmp = parse_icmp_packet(ip_payload);
+	
+	/* icmp packet */
+	if(icmp->icmp_type == icmp_type_echo_request) {
+		/*icmp->icmp_sum = ntohs(icmp->icmp_sum);*/
+	}
+	/* icmp_t3 packet */
+	else {
+		sr_icmp_t3_hdr_t* icmp_t3;	
+		
+		icmp_t3 = parse_icmp_t3_packet(ip_payload);
+		/*icmp_t3->icmp_sum = ntohs(icmp_t3->icmp_sum);*/
+		icmp_t3->unused = ntohs(icmp_t3->unused);
+		icmp_t3->next_mtu = ntohs(icmp_t3->next_mtu);
+		
+		/* if failed is false, then the current icmp packet IS NOT
+			the payload of a failed ip packet. if failed is true, 
+			then the current icmp packet IS the payload of a failed
+			ip packet, and thus should not convert its data field. 
+			SHOULD ONLY EVER BE TRUE THROUGH THIS CALL */
+		if(failed == false) {
+			convert_ip_to_host(icmp_t3->data, true);
+		}
+	}
+}
+
 
 /* Convert host-converted packet to network byte order 
    buf[IN] - host packet buffer
@@ -196,7 +227,7 @@ RC convert_to_network(uint8_t *buf) {
 	   need to use it in host order first */
 	/* parse ethernet payload - ip packet */
 	if(eth->ether_type == ethertype_ip) {
-		convert_ip_to_network(eth_payload);
+		convert_ip_to_network(eth_payload, false);
 	}
 	/* parse ethernet payload - arp packet */
 	else if(eth->ether_type == ethertype_arp) {
@@ -216,15 +247,14 @@ RC convert_to_network(uint8_t *buf) {
 	eth->ether_type = htons(eth->ether_type);
 	return 0;
 }
-
-void convert_ip_to_network(uint8_t *eth_payload) {
+void convert_ip_to_network(uint8_t *eth_payload, bool failed) {
 	sr_ip_hdr_t* ip;
 	uint8_t* ip_payload;
 	ip = parse_ip_packet(eth_payload, &ip_payload);
 	
 	/* parse ip payload - icmp */
 	if(ip->ip_p == ip_protocol_icmp) {
-		convert_icmp_to_network(ip_payload);
+		convert_icmp_to_network(ip_payload, failed);
 	}
 
 	/* convert ip headers */
@@ -235,7 +265,7 @@ void convert_ip_to_network(uint8_t *eth_payload) {
 	/*ip->ip_src = htonl(ip->ip_src);*/
 	/*ip->ip_dst = htonl(ip->ip_dst);*/
 }
-void convert_icmp_to_network(uint8_t *ip_payload) {
+void convert_icmp_to_network(uint8_t *ip_payload, bool failed) {
 	sr_icmp_hdr_t* icmp;
 	icmp = parse_icmp_packet(ip_payload);
 	
@@ -245,13 +275,24 @@ void convert_icmp_to_network(uint8_t *ip_payload) {
 	}
 	/* icmp_t3 packet */
 	else {
-		sr_icmp_t3_hdr_t* icmp_t3;	
+		sr_icmp_t3_hdr_t* icmp_t3;
+
 		icmp_t3 = parse_icmp_t3_packet(ip_payload);
 		/*icmp_t3->icmp_sum = htons(icmp_t3->icmp_sum);*/
 		icmp_t3->unused = htons(icmp_t3->unused);
 		icmp_t3->next_mtu = htons(icmp_t3->next_mtu);
+		
+		/* if failed is false, then the current icmp packet IS NOT
+			the payload of a failed ip packet. if failed is true, 
+			then the current icmp packet IS the payload of a failed
+			ip packet, and thus should not convert its data field. 
+			SHOULD ONLY EVER BE TRUE THROUGH THIS CALL */
+		if(failed == false) {
+			convert_ip_to_network(icmp_t3->data, true);
+		}
 	}
 }
+
 
 /* Packet parsing functions */
 sr_ethernet_hdr_t* parse_eth_frame(uint8_t *buf, uint8_t **payload) {
