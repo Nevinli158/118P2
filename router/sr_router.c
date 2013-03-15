@@ -254,6 +254,16 @@ int sr_process_ip_payload(struct sr_instance* sr, char* interface, uint8_t* in_i
 int sr_process_arp_payload(struct sr_instance* sr, uint8_t* in_arp_packet, int in_arp_packet_len, 
 							uint8_t** out_arp_packet, uint32_t* out_dest_ip){
 	struct sr_arp_hdr* arp_hdr = parse_arp_packet(in_arp_packet);
+	/*If the incoming packet is an ARP packet that we made. This happens when the packet is queued up waiting for the dest
+	IP to be found, and the ARP reply with the dest ip has been found.*/
+	if (is_router_ip(sr, arp_hdr->ar_sip)){
+			/*Just copy the original ARP packet*/
+			*out_arp_packet = build_arp_packet(arp_hdr->ar_op, arp_hdr->ar_sha, arp_hdr->ar_sip, arp_hdr->ar_tha,
+							arp_hdr->ar_tip);
+			*out_dest_ip = arp_hdr->ar_tip;
+			return 0;
+	}
+	/*If the incoming packet is from another source.*/
 	if(arp_hdr->ar_op == arp_op_request){ /*Reply to the request*/
 		unsigned char* router_mac = (unsigned char*)is_router_ip(sr, arp_hdr->ar_tip);
 		printf("*** -> ARP Request Packet \n");
@@ -282,6 +292,7 @@ int sr_process_arp_payload(struct sr_instance* sr, uint8_t* in_arp_packet, int i
 			}
 			sr_arpreq_destroy(&(sr->cache),requests);
 			return RC_INSERTED_INTO_ARP_CACHE;
+		 
 		} else {
 			return RC_ARP_NOT_DESTINED_TO_ROUTER;
 		}
