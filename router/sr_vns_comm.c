@@ -575,7 +575,7 @@ int sr_send_packet(struct sr_instance* sr /* borrowed */,
     assert(iface);
 	
 	convert_to_network(buf);
-	printf("Sending Packet out on interface:%s \n", iface);
+	printf("Sending Packet out on interface:%s, len:%d \n", iface,len);
 	print_hdrs(buf,len);
 	
     /* don't waste my time ... */

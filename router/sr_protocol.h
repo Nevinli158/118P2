@@ -103,6 +103,7 @@ typedef struct sr_icmp_t3_hdr sr_icmp_t3_hdr_t;
 
 enum sr_icmp_type {
   icmp_type_echo_request = 0x0008,
+  icmp_type_echo_reply = 0x0000
 };
 
 

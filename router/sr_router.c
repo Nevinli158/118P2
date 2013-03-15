@@ -235,7 +235,7 @@ int sr_process_ip_payload(struct sr_instance* sr, char* interface, uint8_t* in_i
 		*out_ip_packet = malloc(in_ip_packet_len);
 		memcpy(*out_ip_packet, in_ip_packet, in_ip_packet_len);
 		*out_dest_ip = in_ip_hdr_ip_dst;
-		out_ip_payload_len = in_ip_packet_len;
+		out_ip_payload_len = in_ip_packet_len - sizeof(struct sr_ip_hdr);
 	}
 	*out_ip_packet_len = out_ip_payload_len + sizeof(struct sr_ip_hdr);
 	return 0;
