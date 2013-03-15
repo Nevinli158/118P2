@@ -175,7 +175,7 @@ int sr_process_ip_payload(struct sr_instance* sr, char* interface, uint8_t* in_i
 	/* Subtract out the checksum stuff too? */
 
 	if(verify_ip_cksum(in_ip_packet, in_ip_packet_len) == false){
-		Debug("IP checksum failed. Dropping packet.");
+		Debug("IP checksum failed. Dropping packet. \n");
 		return RC_CHKSUM_FAILED;
     }
 	
@@ -271,6 +271,12 @@ int sr_process_arp_payload(struct sr_instance* sr, uint8_t* in_arp_packet, int i
 			struct sr_arpreq *requests = sr_arpcache_insert(&(sr->cache), arp_hdr->ar_sha, arp_hdr->ar_sip);
 			struct sr_packet *next_packet = requests->packets;
 			while(next_packet != NULL){
+				Debug("Next Received Packet is an old, queued up packet: \n");
+				
+				if(convert_to_network(next_packet->buf) != 0){
+					Debug("Conversion failed.\n");
+				}
+				print_hdrs(next_packet->buf,next_packet->len);
 				sr_handlepacket(sr, next_packet->buf, next_packet->len, next_packet->iface);
 				next_packet = next_packet->next;
 			}
