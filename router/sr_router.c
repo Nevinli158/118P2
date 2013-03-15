@@ -288,9 +288,18 @@ int sr_process_arp_payload(struct sr_instance* sr, uint8_t* in_arp_packet, int i
 				}
 				print_hdrs(next_packet->buf,next_packet->len);
 				sr_handlepacket(sr, next_packet->buf, next_packet->len, next_packet->iface);
+
 				next_packet = next_packet->next;
 			}
-			sr_arpreq_destroy(&(sr->cache),requests);
+			
+			struct sr_packet *pkt, *nxt;
+			for (pkt = requests->packets; pkt; pkt = nxt) {
+				nxt = pkt->next;
+				if (pkt->iface)
+					free(pkt->iface);
+			}
+			free(requests);
+			
 			return RC_INSERTED_INTO_ARP_CACHE;
 		 
 		} else {
