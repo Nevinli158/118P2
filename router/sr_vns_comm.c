@@ -444,7 +444,8 @@ int sr_read_from_server_expect(struct sr_instance* sr /* borrowed */, int expect
                     (buf+sizeof(c_packet_header)),
                     len - sizeof(c_packet_ethernet_header) +
                     sizeof(struct sr_ethernet_hdr),
-                    (char*)(buf + sizeof(c_base)));
+                    (char*)(buf + sizeof(c_base)),
+					0);
 
             break;
 

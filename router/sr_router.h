@@ -66,9 +66,9 @@ int sr_read_from_server(struct sr_instance* );
 
 /* -- sr_router.c -- */
 void sr_init(struct sr_instance* );
-void sr_handlepacket(struct sr_instance* , uint8_t * , unsigned int , char* );
+void sr_handlepacket(struct sr_instance* , uint8_t * , unsigned int , char*, int);
 int sr_process_ip_payload(struct sr_instance* sr,  char* interface, uint8_t* in_ip_packet,int in_ip_packet_len, 
-							uint8_t** out_ip_packet, int* out_ip_packet_len, uint32_t* out_dest_ip);
+							uint8_t** out_ip_packet, int* out_ip_packet_len, uint32_t* out_dest_ip, int wasWaitingInQueue);
 int sr_process_arp_payload(struct sr_instance* sr, uint8_t* in_arp_packet, int in_arp_packet_len, 
 							uint8_t** out_arp_packet, uint32_t* out_dest_ip);
 
