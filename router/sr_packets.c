@@ -41,8 +41,8 @@ uint8_t* build_ip_packet(uint16_t ip_id, uint16_t ip_off, uint8_t ip_p, uint32_t
     hdr.ip_ttl = 64;			/* time to live */
     hdr.ip_p = ip_p;			/* protocol */
     hdr.ip_sum = 0;			/* checksum is zeroed out for checksum computation */
-    /*hdr.ip_src = ntohl(ip_src);	 source and dest address */
-	/*hdr.ip_dst = ntohl(ip_dst);	 need to convert to host order for checksum calculation */
+    hdr.ip_src = htonl(ip_src);	/* source and dest address */
+	hdr.ip_dst = htonl(ip_dst);
 	
 	packet_length = sizeof(sr_ip_hdr_t) + (sizeof(uint8_t) * datalen);
 	hdr.ip_len = packet_length;			/* total length */
@@ -55,10 +55,6 @@ uint8_t* build_ip_packet(uint16_t ip_id, uint16_t ip_off, uint8_t ip_p, uint32_t
 	convert_ip_to_network(buf, false);
 	checksum = cksum(buf, packet_length);	
 	hdr.ip_sum = htons(checksum);
-	/*
-	hdr.ip_src = htonl(ip_src);
-	hdr.ip_dst = htonl(ip_dst);
-	*/
 	convert_ip_to_host(buf, false);
 	
 	return buf;
@@ -191,6 +187,8 @@ void convert_icmp_to_host(uint8_t *ip_payload, bool failed) {
 	/* icmp packet */
 	if(icmp->icmp_type == icmp_type_echo_request) {
 		/*icmp->icmp_sum = ntohs(icmp->icmp_sum);*/
+		memset(ip_payload + sizeof(sr_icmp_hdr_t), 0, ICMP_DATA_SIZE 
+						- sizeof(sr_ip_hdr_t) - sizeof(sr_icmp_hdr_t));
 	}
 	/* icmp_t3 packet */
 	else {
@@ -272,6 +270,10 @@ void convert_icmp_to_network(uint8_t *ip_payload, bool failed) {
 	/* icmp packet */
 	if(icmp->icmp_type == icmp_type_echo_request) {
 		/*icmp->icmp_sum = htons(icmp->icmp_sum);*/
+		if(failed == true) {
+			memset(ip_payload + sizeof(sr_icmp_hdr_t), 0, ICMP_DATA_SIZE 
+						- sizeof(sr_ip_hdr_t) - sizeof(sr_icmp_hdr_t));
+		}
 	}
 	/* icmp_t3 packet */
 	else {
