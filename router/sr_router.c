@@ -215,7 +215,7 @@ int sr_process_ip_payload(struct sr_instance* sr, char* interface, uint8_t* in_i
 			if(icmp_hdr->icmp_type == icmp_type_echo_request){
 				/* Echo reply */
 				icmp_pack = build_icmp_packet(0,0);
-				out_ip_payload_len = sizeof(struct sr_icmp_t3_hdr);	
+				out_ip_payload_len = sizeof(struct sr_icmp_hdr);	
 				out_ip_packet_src_ip = in_ip_hdr_ip_dst;
 			} else {/* what do if received ICMP packet with type not echo request. */
 				return RC_GENERAL_ERROR;
