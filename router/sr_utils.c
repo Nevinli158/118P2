@@ -60,11 +60,9 @@ bool verify_ip_cksum (uint8_t *buf, int buflen) {
 	}
 }
 
-bool verify_icmp_cksum (uint8_t *buf) {
+bool verify_icmp_cksum (uint8_t *buf, int buflen) {
 	uint16_t checksum;
 	uint8_t *buf_cpy;
-	int buflen;
-	buflen = sizeof(sr_icmp_hdr_t);
 	
 	/* Make a copy of the packet and set the checksum field to 0 */
 	buf_cpy = (uint8_t *) malloc (buflen);

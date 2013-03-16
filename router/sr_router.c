@@ -218,6 +218,10 @@ int sr_process_ip_payload(struct sr_instance* sr, char* interface, uint8_t* in_i
 			printf("*** -> IP Packet, ICMP destined for router \n");
 			sr_icmp_hdr_t* icmp_hdr = parse_icmp_packet(in_ip_payload);
 			if(icmp_hdr->icmp_type == icmp_type_echo_request){
+				if(verify_icmp_cksum(in_ip_payload, in_ip_packet_len - sizeof(sr_ip_hdr_t)) == false){
+					Debug("ICMP checksum failed. Dropping packet. \n");
+					return RC_CHKSUM_FAILED;
+				}
 				/* Echo reply */
 				icmp_pack = build_icmp_packet(0,0);
 				out_ip_payload_len = sizeof(struct sr_icmp_hdr);	
