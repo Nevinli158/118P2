@@ -211,6 +211,8 @@ void convert_icmp_to_host(uint8_t *ip_payload, bool failed) {
 			memset(ip_payload + sizeof(sr_icmp_hdr_t), 0, ICMP_DATA_SIZE 
 						- sizeof(sr_ip_hdr_t) - sizeof(sr_icmp_hdr_t));
 		}
+	} else if(icmp->icmp_type == icmp_type_echo_reply){
+	
 	}
 	/* icmp_t3 packet */
 	else {
