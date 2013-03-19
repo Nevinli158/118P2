@@ -75,7 +75,7 @@ uint8_t* build_icmp_packet(uint8_t icmp_type, uint8_t icmp_code) {
 	
 	convert_icmp_to_network(buf, false);
 	checksum = cksum(buf, sizeof(struct sr_icmp_hdr));
-	((sr_icmp_hdr_t *)buf)->icmp_sum = htons(checksum);
+	((sr_icmp_hdr_t *)buf)->icmp_sum = checksum;
 	convert_icmp_to_host(buf, false);
 	
 	return buf;
@@ -95,7 +95,7 @@ uint8_t* build_icmp_t0_packet(uint8_t* echo_reply_payload, int payload_len) {
 	memcpy (buf+sizeof(sr_icmp_hdr_t), echo_reply_payload, payload_len);
 	convert_icmp_to_network(buf, false);
 	checksum = cksum(buf, sizeof(struct sr_icmp_hdr)+ payload_len);
-	((sr_icmp_hdr_t *)buf)->icmp_sum = htons(checksum);
+	((sr_icmp_hdr_t *)buf)->icmp_sum = checksum;
 	convert_icmp_to_host(buf, false);
 	
 	return buf;
@@ -122,7 +122,7 @@ uint8_t* build_icmp_t3_packet(uint8_t icmp_type, uint8_t icmp_code, uint8_t* fai
 	
 	convert_icmp_to_network(buf, false);
 	checksum = cksum(buf, sizeof(struct sr_icmp_t3_hdr));
-	hdr.icmp_sum = htons(checksum);
+	hdr.icmp_sum = checksum;
 	convert_icmp_to_host(buf, false);
 	
 	return buf;
