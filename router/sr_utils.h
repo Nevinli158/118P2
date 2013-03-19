@@ -50,6 +50,7 @@ uint8_t* build_eth_frame(uint8_t *ether_dhost, uint8_t *ether_shost, uint16_t et
 uint8_t* build_ip_packet(uint16_t ip_id, uint16_t ip_off, uint8_t ip_p, uint32_t ip_src, uint32_t ip_dst, 
 							uint8_t *data, int datalen);
 uint8_t* build_icmp_packet(uint8_t icmp_type, uint8_t icmp_code);
+uint8_t* build_icmp_t0_packet(uint8_t* echo_reply_payload, int payload_len);
 uint8_t* build_icmp_t3_packet(uint8_t icmp_type, uint8_t icmp_code, uint8_t* failed_ip_packet);
 uint8_t* build_arp_packet(unsigned short ar_op, unsigned char ar_sha[], uint32_t ar_sip, const unsigned char ar_tha[],
 							uint32_t ar_tip);
@@ -73,6 +74,7 @@ void convert_icmp_to_network(uint8_t *ip_payload, bool failed);
 sr_ethernet_hdr_t* parse_eth_frame(uint8_t *buf, uint8_t **payload);
 sr_ip_hdr_t* parse_ip_packet(uint8_t *buf, uint8_t **payload);
 sr_icmp_hdr_t* parse_icmp_packet(uint8_t *buf);
+sr_icmp_hdr_t* parse_icmp_t0_packet(uint8_t *buf, uint8_t **payload);
 sr_icmp_t3_hdr_t* parse_icmp_t3_packet(uint8_t *buf);
 sr_arp_hdr_t* parse_arp_packet(uint8_t *buf);
 

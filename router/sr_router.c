@@ -218,13 +218,19 @@ int sr_process_ip_payload(struct sr_instance* sr, char* interface, uint8_t* in_i
 			printf("*** -> IP Packet, ICMP destined for router \n");
 			sr_icmp_hdr_t* icmp_hdr = parse_icmp_packet(in_ip_payload);
 			if(icmp_hdr->icmp_type == icmp_type_echo_request){
-				if(verify_icmp_cksum(in_ip_payload, in_ip_packet_len - sizeof(sr_ip_hdr_t)) == false){
+				uint8_t* echo_reply_payload = NULL;
+				icmp_hdr = parse_icmp_t0_packet(in_ip_payload, &echo_reply_payload);
+				int icmp_len = in_ip_packet_len - sizeof(sr_ip_hdr_t);
+				int icmp_payload_len =  icmp_len - sizeof(struct sr_icmp_hdr);
+				if(verify_icmp_cksum(in_ip_payload, icmp_len) == false){
 					Debug("ICMP checksum failed. Dropping packet. \n");
 					return RC_CHKSUM_FAILED;
 				}
 				/* Echo reply */
-				icmp_pack = build_icmp_packet(0,0);
-				out_ip_payload_len = sizeof(struct sr_icmp_hdr);	
+				
+				icmp_pack = build_icmp_t0_packet(echo_reply_payload,icmp_payload_len);
+
+				out_ip_payload_len = sizeof(struct sr_icmp_hdr) + icmp_payload_len;	
 				out_ip_packet_src_ip = in_ip_hdr_ip_dst;
 			} else {/* what do if received ICMP packet with type not echo request. */
 				return RC_GENERAL_ERROR;

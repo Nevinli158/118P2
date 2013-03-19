@@ -37,7 +37,7 @@ uint8_t* build_ip_packet(uint16_t ip_id, uint16_t ip_off, uint8_t ip_p, uint32_t
 	hdr.ip_v = 0x4;		/* version */
     hdr.ip_tos = 0;			/* type of service */
     hdr.ip_id = ip_id;			/* identification */
-    hdr.ip_off = ip_off;			/* fragment offset field */
+    hdr.ip_off = IP_DF;			/* fragment offset field */
     hdr.ip_ttl = 64;			/* time to live */
     hdr.ip_p = ip_p;			/* protocol */
     hdr.ip_sum = 0;			/* checksum is zeroed out for checksum computation */
@@ -75,7 +75,27 @@ uint8_t* build_icmp_packet(uint8_t icmp_type, uint8_t icmp_code) {
 	
 	convert_icmp_to_network(buf, false);
 	checksum = cksum(buf, sizeof(struct sr_icmp_hdr));
-	hdr.icmp_sum = htons(checksum);
+	((sr_icmp_hdr_t *)buf)->icmp_sum = htons(checksum);
+	convert_icmp_to_host(buf, false);
+	
+	return buf;
+}
+
+uint8_t* build_icmp_t0_packet(uint8_t* echo_reply_payload, int payload_len) {
+	uint8_t* buf;
+	uint16_t checksum;
+	
+	struct sr_icmp_hdr hdr;
+	hdr.icmp_type = 0;
+	hdr.icmp_code = 0;
+	hdr.icmp_sum = 0;	/* checksum is zeroed out for checksum computation */
+	
+	buf = (uint8_t*) malloc (sizeof(sr_icmp_hdr_t) + payload_len);
+	memcpy (buf, &hdr, sizeof(sr_icmp_hdr_t));
+	memcpy (buf+sizeof(sr_icmp_hdr_t), echo_reply_payload, payload_len);
+	convert_icmp_to_network(buf, false);
+	checksum = cksum(buf, sizeof(struct sr_icmp_hdr)+ payload_len);
+	((sr_icmp_hdr_t *)buf)->icmp_sum = htons(checksum);
 	convert_icmp_to_host(buf, false);
 	
 	return buf;
@@ -317,6 +337,12 @@ sr_ip_hdr_t* parse_ip_packet(uint8_t *buf, uint8_t **payload) {
 sr_icmp_hdr_t* parse_icmp_packet(uint8_t *buf) {
 	return (sr_icmp_hdr_t*)buf;
 }
+
+sr_icmp_hdr_t* parse_icmp_t0_packet(uint8_t *buf, uint8_t **payload) {
+	*payload = buf + sizeof(sr_icmp_hdr_t);
+	return (sr_icmp_hdr_t*)buf;
+}
+
 sr_icmp_t3_hdr_t* parse_icmp_t3_packet(uint8_t *buf) {
 	return (sr_icmp_t3_hdr_t*)buf;
 }

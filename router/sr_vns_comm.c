@@ -568,7 +568,13 @@ int sr_send_packet(struct sr_instance* sr /* borrowed */,
 {
     c_packet_header *sr_pkt;
     unsigned int total_len =  len + (sizeof(c_packet_header));
-
+	struct sr_ethernet_hdr* in_eth_pack = NULL;
+	uint8_t* in_ip_payload = NULL;
+	uint8_t* in_icmp_payload = NULL;
+	struct sr_ip_hdr* in_ip_hdr = NULL;
+	struct sr_icmp_hdr* in_icmp_hdr = NULL;
+	 uint8_t* in_ether_payload = NULL;
+	 int ip_payload_len = 0;
     /* REQUIRES */
     assert(sr);
     assert(buf);
@@ -577,6 +583,27 @@ int sr_send_packet(struct sr_instance* sr /* borrowed */,
 	convert_to_network(buf);
 	printf("Sending Packet out on interface:%s, len:%d \n", iface,len);
 	print_hdrs(buf,len);
+	
+	in_eth_pack = parse_eth_frame(buf, &in_ether_payload);
+	if(ntohs(in_eth_pack->ether_type) == ethertype_ip){
+		in_ip_hdr = parse_ip_packet(in_ether_payload, &in_ip_payload);
+		if(in_ip_hdr->ip_p == ip_protocol_icmp){
+			ip_payload_len = len - sizeof(struct sr_ethernet_hdr) - sizeof(struct sr_ip_hdr);
+			in_icmp_hdr = parse_icmp_packet(in_ip_payload);
+			if(in_icmp_hdr->icmp_type == 0){
+				in_icmp_hdr = parse_icmp_t0_packet(in_ip_payload, &in_icmp_payload);
+				in_icmp_hdr->icmp_sum = 0;
+				/*in_icmp_hdr->icmp_sum = htons(cksum (in_ip_payload, ip_payload_len));*/
+				in_icmp_hdr->icmp_sum = cksum (in_ip_payload, ip_payload_len);
+			}
+		}
+		in_ip_hdr->ip_sum = 0;
+		/*in_ip_hdr->ip_sum = htons(cksum (in_ether_payload, len - sizeof(struct sr_ethernet_hdr)));*/
+		in_ip_hdr->ip_sum = cksum (in_ether_payload, len - sizeof(struct sr_ethernet_hdr));
+		print_hdrs(buf,len);
+	} else if(ntohs(in_eth_pack->ether_type) == ethertype_arp){
+		
+	}
 	
     /* don't waste my time ... */
     if ( len < sizeof(struct sr_ethernet_hdr) ){
