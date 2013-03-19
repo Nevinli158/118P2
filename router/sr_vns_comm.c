@@ -444,8 +444,7 @@ int sr_read_from_server_expect(struct sr_instance* sr /* borrowed */, int expect
                     (buf+sizeof(c_packet_header)),
                     len - sizeof(c_packet_ethernet_header) +
                     sizeof(struct sr_ethernet_hdr),
-                    (char*)(buf + sizeof(c_base)),
-					0);
+                    (char*)(buf + sizeof(c_base)));
 
             break;
 
@@ -580,10 +579,21 @@ int sr_send_packet(struct sr_instance* sr /* borrowed */,
     assert(buf);
     assert(iface);
 	
+	/* If the packet is from the client to a non-router dest, decrease the ttl*/	
+	in_eth_pack = parse_eth_frame(buf, &in_ether_payload);
+	if(ntohs(in_eth_pack->ether_type) == ethertype_ip){
+		in_ip_hdr = parse_ip_packet(in_ether_payload, &in_ip_payload);
+		if(is_router_ip(sr, in_ip_hdr->ip_dst) == 0
+			&& is_router_ip(sr, in_ip_hdr->ip_src) == 0){ 
+			in_ip_hdr->ip_ttl--; 
+		}	
+	}
+	
 	convert_to_network(buf);
 	printf("Sending Packet out on interface:%s, len:%d \n", iface,len);
 	print_hdrs(buf,len);
 	
+	/* Sanity check on checksums */
 	in_eth_pack = parse_eth_frame(buf, &in_ether_payload);
 	if(ntohs(in_eth_pack->ether_type) == ethertype_ip){
 		in_ip_hdr = parse_ip_packet(in_ether_payload, &in_ip_payload);

@@ -72,8 +72,8 @@ void sr_init(struct sr_instance* sr)
 void sr_handlepacket(struct sr_instance* sr,
         uint8_t * packet/* lent */,
         unsigned int len,
-        char* interface/* lent */,
-		int wasWaitingInQueue)
+        char* interface/* lent */
+		)
 {
   struct sr_ethernet_hdr* in_eth_pack = NULL;
   uint8_t* in_ether_payload = NULL;
@@ -93,17 +93,13 @@ void sr_handlepacket(struct sr_instance* sr,
   printf("*** -> Received packet of length %d \n",len);
   convert_to_host(packet);
   /* function for comparing checksum before parsing packet */
-  /*if(verify_eth_cksum(packet, len) == false){
-	Debug("Ethernet checksum failed. Dropping packet.");
-	return;
-  }*/
-  
+ 
   /*Construct the outgoing ethernet payload */		
   
   in_eth_pack = parse_eth_frame(packet, &in_ether_payload);
   if(in_eth_pack->ether_type == ethertype_ip){  /*IP*/
 	int ip_pack_len = len - sizeof(struct sr_ethernet_hdr); 	
-	int rc = sr_process_ip_payload(sr, interface, in_ether_payload, ip_pack_len, &out_eth_payload, &out_eth_payload_len, &out_dest_ip, wasWaitingInQueue);
+	int rc = sr_process_ip_payload(sr, interface, in_ether_payload, ip_pack_len, &out_eth_payload, &out_eth_payload_len, &out_dest_ip);
 	if(rc != 0){
 		return;
 	}	
@@ -167,7 +163,7 @@ void sr_handlepacket(struct sr_instance* sr,
 	@param out_dest_ip[OUT] - Destination IP of the outgoing IP packet. More for convenience so you don't need to parse out_ip_packet
 */
 int sr_process_ip_payload(struct sr_instance* sr, char* interface, uint8_t* in_ip_packet, int in_ip_packet_len,
-							uint8_t** out_ip_packet, int* out_ip_packet_len, uint32_t* out_dest_ip, int wasWaitingInQueue){
+							uint8_t** out_ip_packet, int* out_ip_packet_len, uint32_t* out_dest_ip){
 	uint8_t* in_ip_payload = NULL;
 	struct sr_ip_hdr* in_ip_hdr = NULL;
 	int out_ip_payload_len;
@@ -182,14 +178,11 @@ int sr_process_ip_payload(struct sr_instance* sr, char* interface, uint8_t* in_i
     }
 	
 	in_ip_hdr = parse_ip_packet(in_ip_packet, &in_ip_payload);
-	/*Only decrease ttl if this was first packet read*/
-	if(wasWaitingInQueue == 0){
-		in_ip_hdr->ip_ttl--; 
-	}
+
 	in_ip_hdr_ip_dst = in_ip_hdr->ip_dst;
-	/* If the packet is destined to the router or if TTL hit 0:
+	/* If the packet is destined to the router or if TTL would hit 0:
 		all cases where router needs to build and return an ICMP packet*/	
-	if(in_ip_hdr->ip_ttl <= 0
+	if(in_ip_hdr->ip_ttl <= 1
 		|| is_router_ip(sr, in_ip_hdr_ip_dst)){ 
 		uint8_t* icmp_pack = NULL;
 		uint32_t out_ip_packet_src_ip;
@@ -305,7 +298,7 @@ int sr_process_arp_payload(struct sr_instance* sr, uint8_t* in_arp_packet, int i
 					Debug("Conversion failed.\n");
 				}
 				print_hdrs(next_packet->buf,next_packet->len);
-				sr_handlepacket(sr, next_packet->buf, next_packet->len, next_packet->iface, 1);
+				sr_handlepacket(sr, next_packet->buf, next_packet->len, next_packet->iface);
 
 				next_packet = next_packet->next;
 			}

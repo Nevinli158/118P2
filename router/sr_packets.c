@@ -114,15 +114,14 @@ uint8_t* build_icmp_t3_packet(uint8_t icmp_type, uint8_t icmp_code, uint8_t* fai
 	if(sizeof(struct sr_ip_hdr)+8 != ICMP_DATA_SIZE){
 		Debug("init_sr_icmp_t3_hdr: sizeof(struct sr_ip_hdr)+8 != ICMP_DATA_SIZE");
 	}
-	memcpy(&hdr.data,failed_ip_packet,sizeof(struct sr_ip_hdr));/*Data has IP header + 1st 8 bytes of payload */
-	memcpy((&hdr.data)+sizeof(struct sr_ip_hdr),failed_ip_packet,8);
+	memcpy(&hdr.data,failed_ip_packet,ICMP_DATA_SIZE);/*Data has IP header + 1st 8 bytes of payload */
 	
 	buf = (uint8_t*) malloc (sizeof(sr_icmp_t3_hdr_t));
 	memcpy (buf, &hdr, sizeof(sr_icmp_t3_hdr_t));
 	
 	convert_icmp_to_network(buf, false);
 	checksum = cksum(buf, sizeof(struct sr_icmp_t3_hdr));
-	hdr.icmp_sum = checksum;
+	((sr_icmp_t3_hdr_t *)buf)->icmp_sum = checksum;
 	convert_icmp_to_host(buf, false);
 	
 	return buf;
@@ -206,11 +205,11 @@ void convert_icmp_to_host(uint8_t *ip_payload, bool failed) {
 	
 	/* icmp packet */
 	if(icmp->icmp_type == icmp_type_echo_request) {
-		/*icmp->icmp_sum = ntohs(icmp->icmp_sum);*/
+		/*icmp->icmp_sum = ntohs(icmp->icmp_sum);
 		if(failed == true) {
 			memset(ip_payload + sizeof(sr_icmp_hdr_t), 0, ICMP_DATA_SIZE 
 						- sizeof(sr_ip_hdr_t) - sizeof(sr_icmp_hdr_t));
-		}
+		}*/
 	} else if(icmp->icmp_type == icmp_type_echo_reply){
 	
 	}
@@ -294,11 +293,11 @@ void convert_icmp_to_network(uint8_t *ip_payload, bool failed) {
 	/* icmp packet */
 	if(icmp->icmp_type == icmp_type_echo_request
 		) {
-		/*icmp->icmp_sum = htons(icmp->icmp_sum);*/
+		/*icmp->icmp_sum = htons(icmp->icmp_sum);
 		if(failed == true) {
 			memset(ip_payload + sizeof(sr_icmp_hdr_t), 0, ICMP_DATA_SIZE 
 						- sizeof(sr_ip_hdr_t) - sizeof(sr_icmp_hdr_t));
-		}
+		}*/
 	} else if(icmp->icmp_type == icmp_type_echo_reply){
 	
 	}
