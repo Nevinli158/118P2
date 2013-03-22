@@ -28,12 +28,17 @@ void sr_arpcache_sweepreqs(struct sr_instance *sr) {
 			/*If the request was sent less than 5 times, send the request. (function is such that a request is sent every minute)*/
 			uint8_t *arp_pack, *eth_pack;
 			struct sr_packet *request_pack = req->packets;
-			struct sr_if* iface = sr_get_interface(sr,request_pack->iface);
-
-			if(iface == 0){ Debug("sr_arpcache_sweepreqs<5: get_interface returned null"); }
-			arp_pack = build_arp_packet(arp_op_request, iface->addr, iface->ip, BCAST_MAC_ADDR, req->ip);
-			eth_pack = build_eth_frame((uint8_t*)BCAST_MAC_ADDR,iface->addr,ethertype_arp, arp_pack, sizeof(struct sr_arp_hdr));
-			sr_send_packet(sr, eth_pack, sizeof(struct sr_arp_hdr)+sizeof(struct sr_ethernet_hdr), request_pack->iface);
+			char char_outgoing_iface[sr_IFACE_NAMELEN];
+			if(sr_prefix_match(sr, req->ip, char_outgoing_iface) == false){
+					Debug("Prefix matching failed");
+					request_pack = request_pack->next;
+					continue;
+			}
+			struct sr_if* outgoing_iface = sr_get_interface(sr,char_outgoing_iface);
+			if(outgoing_iface == 0){ Debug("sr_arpcache_sweepreqs<5: get_interface returned null"); }
+			arp_pack = build_arp_packet(arp_op_request, outgoing_iface->addr, outgoing_iface->ip, BCAST_MAC_ADDR, req->ip);
+			eth_pack = build_eth_frame((uint8_t*)BCAST_MAC_ADDR,outgoing_iface->addr,ethertype_arp, arp_pack, sizeof(struct sr_arp_hdr));
+			sr_send_packet(sr, eth_pack, sizeof(struct sr_arp_hdr)+sizeof(struct sr_ethernet_hdr), char_outgoing_iface);
 			req->times_sent++;
 			
 			free(arp_pack);
@@ -72,7 +77,8 @@ void sr_arpcache_sweepreqs(struct sr_instance *sr) {
 				/*Look at ARP cache for the client's MAC */					
 				client_mac =  sr_arpcache_lookup( &(sr->cache), failed_pack_ip_hdr->ip_src);
 				if(client_mac == NULL || client_mac->valid == 0){ /* MAC wasn't found, add the packet to the ARP queue */
-					eth_pack = build_eth_frame(0,iface->addr,ethertype_ip, ip_pack, eth_payload_len);
+					uint8_t ether_dhost = 0;
+					eth_pack = build_eth_frame(&ether_dhost,iface->addr,ethertype_ip, ip_pack, eth_payload_len);
 					sr_arpcache_queuereq( &(sr->cache), failed_pack_ip_hdr->ip_src, eth_pack, eth_pack_len, iface->name);
 				} else { /*MAC was found, send the packet off */
 					eth_pack = build_eth_frame(client_mac->mac,iface->addr,ethertype_ip, ip_pack, eth_payload_len);
