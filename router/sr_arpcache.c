@@ -32,7 +32,7 @@ void sr_arpcache_sweepreqs(struct sr_instance *sr) {
 			/* Look up the appropriate interface to send the request to*/
 			if(sr_prefix_match(sr, req->ip, char_outgoing_iface) == false){
 					Debug("Prefix matching failed");
-					request_pack = request_pack->next;
+					req = req->next;
 					continue;
 			}
 			struct sr_if* outgoing_iface = sr_get_interface(sr,char_outgoing_iface);
