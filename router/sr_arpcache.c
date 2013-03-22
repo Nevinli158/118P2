@@ -27,13 +27,16 @@ void sr_arpcache_sweepreqs(struct sr_instance *sr) {
 		/*If the request was sent less than 5 times, send the request. (function is such that a request is sent every minute)*/
 		if(req->times_sent < 5){
 			uint8_t *arp_pack, *eth_pack;
-			struct sr_packet *request_pack = req->packets;
 			char char_outgoing_iface[sr_IFACE_NAMELEN];
 			/* Look up the appropriate interface to send the request to*/
 			if(sr_prefix_match(sr, req->ip, char_outgoing_iface) == false){
-					Debug("Prefix matching failed");
-					req = req->next;
-					continue;
+				Debug("No matching interface \n");
+				struct sr_arpreq *temp = req;
+				send_icmp_t3_replies(sr, req->packets, 0);
+				req = req->next;
+				/*remove the request from the queue*/
+				sr_arpreq_destroy(&(sr->cache), temp);
+				continue;
 			}
 			struct sr_if* outgoing_iface = sr_get_interface(sr,char_outgoing_iface);
 			if(outgoing_iface == 0){ Debug("sr_arpcache_sweepreqs<5: get_interface returned null"); }
@@ -47,57 +50,48 @@ void sr_arpcache_sweepreqs(struct sr_instance *sr) {
 			free(eth_pack);
 			req = req->next;
 		} else { /*If the request was sent 5 times: */
-			struct sr_packet *request_pack = req->packets;
 			struct sr_arpreq *temp = req;
-			
-			/*For each packet depending on this ARP (sr_packet)*/
-			while(request_pack != NULL){
-				uint8_t* failed_ip_pack = NULL;/*The client's packet that could not be sent*/
-				struct sr_ethernet_hdr *failed_pack_eth_hdr = NULL; 
-				struct sr_ip_hdr* failed_pack_ip_hdr = NULL;
-				uint8_t* failed_ip_payload = NULL;
-				uint8_t* icmp_pack, *ip_pack, *eth_pack;
-				struct sr_arpentry *client_mac;
-				char char_iface[sr_IFACE_NAMELEN];
-				struct sr_if* iface; 
-				int ip_payload_len = sizeof(struct sr_icmp_t3_hdr);
-				int eth_payload_len = ip_payload_len + sizeof(struct sr_ip_hdr);
-				unsigned int eth_pack_len = eth_payload_len + sizeof(struct sr_ethernet_hdr); /* */
-				failed_pack_eth_hdr = parse_eth_frame(request_pack->buf, &failed_ip_pack);
-				failed_pack_ip_hdr = parse_ip_packet(failed_ip_pack, &failed_ip_payload);
-				Debug("   Packet: srcip: %x, dstip: %x\n", failed_pack_ip_hdr->ip_src, failed_pack_ip_hdr->ip_dst);
-				if(sr_prefix_match(sr, failed_pack_ip_hdr->ip_src, char_iface) == false){
-					Debug("Prefix matching failed");
-					request_pack = request_pack->next;
-					continue;
-				}
-				
-				iface = sr_get_interface(sr, char_iface);
-				icmp_pack = build_icmp_t3_packet(3, 1, failed_ip_pack);
-				ip_pack = build_ip_packet(0, 0, ip_protocol_icmp, iface->ip, failed_pack_ip_hdr->ip_src, icmp_pack, ip_payload_len);
-									
-				/*Look at ARP cache for the client's MAC */					
-				client_mac =  sr_arpcache_lookup( &(sr->cache), failed_pack_ip_hdr->ip_src);
-				if(client_mac == NULL || client_mac->valid == 0){ /* MAC wasn't found, add the packet to the ARP queue */
-					uint8_t ether_dhost = 0;
-					eth_pack = build_eth_frame(&ether_dhost,iface->addr,ethertype_ip, ip_pack, eth_payload_len);
-					sr_arpcache_queuereq( &(sr->cache), failed_pack_ip_hdr->ip_src, eth_pack, eth_pack_len, iface->name);
-				} else { /*MAC was found, send the packet off */
-					eth_pack = build_eth_frame(client_mac->mac,iface->addr,ethertype_ip, ip_pack, eth_payload_len);
-					sr_send_packet(sr, eth_pack, eth_pack_len , request_pack->iface);
-				}
-				
-				free(icmp_pack);
-				free(ip_pack);
-				free(eth_pack);
-
-				request_pack = request_pack->next;
-			}
+			send_icmp_t3_replies(sr, req->packets, 1);
 			req = req->next;
 			/*remove the request from the queue*/
 			sr_arpreq_destroy(&(sr->cache), temp);
 			Debug("Request sent 5 times, destroying request \n");
 		}
+	}
+}
+
+void send_icmp_t3_replies(struct sr_instance *sr, struct sr_packet *request_pack, int code){
+	/*For each packet depending on this ARP (sr_packet)*/
+	while(request_pack != NULL){
+		uint8_t* failed_ip_pack = NULL;/*The client's packet that could not be sent*/
+		struct sr_ip_hdr* failed_pack_ip_hdr = NULL;
+		uint8_t* failed_ip_payload = NULL;
+		uint8_t* icmp_pack, *ip_pack, *eth_pack;
+		struct sr_arpentry *client_mac;
+		struct sr_if* iface = sr_get_interface(sr, request_pack->iface); 
+		int ip_payload_len = sizeof(struct sr_icmp_t3_hdr);
+		int eth_payload_len = ip_payload_len + sizeof(struct sr_ip_hdr);
+		unsigned int eth_pack_len = eth_payload_len + sizeof(struct sr_ethernet_hdr);
+		parse_eth_frame(request_pack->buf, &failed_ip_pack);
+		failed_pack_ip_hdr = parse_ip_packet(failed_ip_pack, &failed_ip_payload);
+		
+		icmp_pack = build_icmp_t3_packet(3, code, failed_ip_pack);
+		ip_pack = build_ip_packet(0, 0, ip_protocol_icmp, iface->ip, failed_pack_ip_hdr->ip_src, icmp_pack, ip_payload_len);
+
+		/*Look at ARP cache for the client's MAC */	
+		client_mac = sr_arpcache_lookup( &(sr->cache), failed_pack_ip_hdr->ip_src);
+		if(client_mac == NULL || client_mac->valid == 0){ /* MAC wasn't found, add the packet to the ARP queue */
+			uint8_t ether_dhost = 0;
+			eth_pack = build_eth_frame(&ether_dhost,iface->addr,ethertype_ip, ip_pack, eth_payload_len);
+			sr_arpcache_queuereq( &(sr->cache), failed_pack_ip_hdr->ip_src, eth_pack, eth_pack_len, iface->name);
+		} else { /*MAC was found, send the packet off */
+			eth_pack = build_eth_frame(client_mac->mac,iface->addr,ethertype_ip, ip_pack, eth_payload_len);
+			sr_send_packet(sr, eth_pack, eth_pack_len , request_pack->iface);
+		}
+		free(icmp_pack);
+		free(ip_pack);
+
+		request_pack = request_pack->next;
 	}
 }
 

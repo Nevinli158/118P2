@@ -106,6 +106,8 @@ struct sr_arpcache {
     pthread_mutexattr_t attr;
 };
 
+void send_icmp_t3_replies(struct sr_instance *sr, struct sr_packet *request_pack, int code);
+
 /* Checks if an IP->MAC mapping is in the cache. IP is in network byte order. 
    You must free the returned structure if it is not NULL. */
 struct sr_arpentry *sr_arpcache_lookup(struct sr_arpcache *cache, uint32_t ip);
