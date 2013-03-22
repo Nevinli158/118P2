@@ -172,14 +172,16 @@ int sr_process_ip_payload(struct sr_instance* sr, char* interface, uint8_t* in_i
 
 	/* Subtract out the checksum stuff too? */
 
+	
+	
 	if(verify_ip_cksum(in_ip_packet, in_ip_packet_len) == false){
 		Debug("IP checksum failed. Dropping packet. \n");
 		return RC_CHKSUM_FAILED;
     }
 	
 	in_ip_hdr = parse_ip_packet(in_ip_packet, &in_ip_payload);
-
 	in_ip_hdr_ip_dst = in_ip_hdr->ip_dst;
+
 	/* If the packet is destined to the router or if TTL would hit 0:
 		all cases where router needs to build and return an ICMP packet*/	
 	if(in_ip_hdr->ip_ttl <= 1
