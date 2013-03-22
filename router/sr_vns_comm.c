@@ -603,14 +603,11 @@ int sr_send_packet(struct sr_instance* sr /* borrowed */,
 			if(in_icmp_hdr->icmp_type == 0){
 				in_icmp_hdr = parse_icmp_t0_packet(in_ip_payload, &in_icmp_payload);
 				in_icmp_hdr->icmp_sum = 0;
-				/*in_icmp_hdr->icmp_sum = htons(cksum (in_ip_payload, ip_payload_len));*/
 				in_icmp_hdr->icmp_sum = cksum (in_ip_payload, ip_payload_len);
 			}
 		}
 		in_ip_hdr->ip_sum = 0;
-		/*in_ip_hdr->ip_sum = htons(cksum (in_ether_payload, len - sizeof(struct sr_ethernet_hdr)));*/
-		in_ip_hdr->ip_sum = cksum (in_ether_payload, len - sizeof(struct sr_ethernet_hdr));
-		print_hdrs(buf,len);
+		in_ip_hdr->ip_sum = cksum (in_ether_payload, sizeof(struct sr_ip_hdr));
 	} else if(ntohs(in_eth_pack->ether_type) == ethertype_arp){
 		
 	}
