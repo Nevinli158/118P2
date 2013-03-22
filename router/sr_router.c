@@ -172,7 +172,7 @@ int sr_process_ip_payload(struct sr_instance* sr, char* interface, uint8_t* in_i
 
 	/* Subtract out the checksum stuff too? */
 
-	if(verify_ip_cksum(in_ip_packet, in_ip_packet_len) == false){
+	if(verify_ip_cksum(in_ip_packet) == false){
 		Debug("IP checksum failed. Dropping packet. \n");
 		return RC_CHKSUM_FAILED;
     }

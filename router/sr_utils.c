@@ -35,21 +35,20 @@ bool verify_eth_cksum (uint8_t *buf, int buflen) {
 	}
 }*/
 
-/* buf - ip packet
-   buflen - length of packet */
-bool verify_ip_cksum (uint8_t *buf, int buflen) {
+/* buf - ip packet */
+bool verify_ip_cksum (uint8_t *buf) {
 	uint16_t checksum;
 	uint8_t *buf_cpy;
 	sr_ip_hdr_t * ip;
 	
 	/* Make a copy of the packet and set the checksum field to 0 */
-	buf_cpy = (uint8_t *) malloc (buflen);
-	memcpy (buf_cpy, buf, buflen);
+	buf_cpy = (uint8_t *) malloc (sizeof(sr_ip_hdr_t));
+	memcpy (buf_cpy, buf, sizeof(sr_ip_hdr_t));
 	ip = (sr_ip_hdr_t *) buf_cpy;
 	ip->ip_sum = 0;
 	convert_ip_to_network(buf_cpy, false);
 	/* Compute checksum and check against checksum field in packet */
-	checksum = cksum (buf_cpy, buflen);
+	checksum = cksum (buf_cpy, sizeof(sr_ip_hdr_t));
 	
 	free (buf_cpy);
 	if((memcmp (&checksum, &(((sr_ip_hdr_t *) buf)->ip_sum), 2)) == 0) {

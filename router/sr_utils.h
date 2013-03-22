@@ -36,7 +36,7 @@ typedef int bool;
 enum { false, true };
 
 /*bool verify_eth_cksum (uint8_t *buf, int buflen);*/
-bool verify_ip_cksum (uint8_t *buf, int buflen);
+bool verify_ip_cksum (uint8_t *buf);
 bool verify_icmp_cksum (uint8_t *buf, int buflen);
 bool verify_icmp_t3_cksum (uint8_t *buf);
 /* Returns the MAC address corresponding to the IP, NULL if none */
