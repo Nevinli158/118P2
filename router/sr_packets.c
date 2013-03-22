@@ -185,7 +185,7 @@ void convert_ip_to_host(uint8_t *eth_payload, bool failed) {
 	sr_ip_hdr_t* ip;
 	uint8_t* ip_payload;
 	ip = parse_ip_packet(eth_payload, &ip_payload);
-	
+
 	/* parse ip payload - icmp */
 	if(ip->ip_p == ip_protocol_icmp) {
 		convert_icmp_to_host(ip_payload, failed);
