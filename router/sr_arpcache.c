@@ -90,7 +90,7 @@ void send_icmp_t3_replies(struct sr_instance *sr, struct sr_packet *request_pack
 		}
 		free(icmp_pack);
 		free(ip_pack);
-
+		free(eth_pack);
 		request_pack = request_pack->next;
 	}
 }
