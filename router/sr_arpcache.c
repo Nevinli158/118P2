@@ -60,6 +60,9 @@ void sr_arpcache_sweepreqs(struct sr_instance *sr) {
 	}
 }
 
+/*Sends an icmp t3 reply with the appropriate code to each packet depending on the
+request packet. Intended to be used for when the request packet was unable to ARP 
+request an IP. */
 void send_icmp_t3_replies(struct sr_instance *sr, struct sr_packet *request_pack, int code){
 	/*For each packet depending on this ARP (sr_packet)*/
 	while(request_pack != NULL){
