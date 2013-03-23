@@ -111,9 +111,7 @@ uint8_t* build_icmp_t3_packet(uint8_t icmp_type, uint8_t icmp_code, uint8_t* fai
 	hdr.icmp_sum = 0;	/* checksum is zeroed out for checksum computation */
 	hdr.unused = 0;
 	hdr.next_mtu = 0; /*only used for code 4, which is out of scope of this assignment. */
-	if(sizeof(struct sr_ip_hdr)+8 != ICMP_DATA_SIZE){
-		Debug("init_sr_icmp_t3_hdr: sizeof(struct sr_ip_hdr)+8 != ICMP_DATA_SIZE");
-	}
+
 	memcpy(&hdr.data,failed_ip_packet,ICMP_DATA_SIZE);/*Data has IP header + 1st 8 bytes of payload */
 	
 	buf = (uint8_t*) malloc (sizeof(sr_icmp_t3_hdr_t));

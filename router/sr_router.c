@@ -122,7 +122,6 @@ void sr_handlepacket(struct sr_instance* sr,
   }
   
 	/*Construct the outgoing ethernet frame and send it off */			
-	
   	out_eth_pack_len = out_eth_payload_len + sizeof(struct sr_ethernet_hdr); 	
 	/*Look at ARP cache for the client's MAC */					
 	out_client_mac =  sr_arpcache_lookup( &(sr->cache), out_dest_ip);

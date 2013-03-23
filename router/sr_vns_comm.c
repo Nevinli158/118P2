@@ -579,7 +579,7 @@ int sr_send_packet(struct sr_instance* sr /* borrowed */,
     assert(buf);
     assert(iface);
 	
-	/* If the packet is from the client to a non-router dest, decrease the ttl*/	
+	/* If the packet is from the client to a non-router dest, decrease the ttl */	
 	in_eth_pack = parse_eth_frame(buf, &in_ether_payload);
 	if(ntohs(in_eth_pack->ether_type) == ethertype_ip){
 		in_ip_hdr = parse_ip_packet(in_ether_payload, &in_ip_payload);
@@ -605,14 +605,12 @@ int sr_send_packet(struct sr_instance* sr /* borrowed */,
 				in_icmp_hdr->icmp_sum = 0;
 				in_icmp_hdr->icmp_sum = cksum (in_ip_payload, ip_payload_len);
 			} else if(in_icmp_hdr->icmp_type == 11 && is_router_ip(sr, in_ip_hdr->ip_src)){
-				int x = 4;
+
 			}
 		}
 		in_ip_hdr->ip_sum = 0;
 		in_ip_hdr->ip_sum = cksum (in_ether_payload, sizeof(struct sr_ip_hdr));
-	} else if(ntohs(in_eth_pack->ether_type) == ethertype_arp){
-		
-	}
+	} 
 	
     /* don't waste my time ... */
     if ( len < sizeof(struct sr_ethernet_hdr) ){
