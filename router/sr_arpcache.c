@@ -23,14 +23,14 @@ void sr_arpcache_sweepreqs(struct sr_instance *sr) {
 	req = sr->cache.requests;
 	/*For each entry in sr->cache->requests (linked list of requests)*/
 	while(req != NULL){
-		Debug("Request previously sent %d times \n", req->times_sent);
+		/*Debug("Request previously sent %d times \n", req->times_sent);*/
 		/*If the request was sent less than 5 times, send the request. (function is such that a request is sent every minute)*/
 		if(req->times_sent < 5){
 			uint8_t *arp_pack, *eth_pack;
 			char char_outgoing_iface[sr_IFACE_NAMELEN];
 			/* Look up the appropriate interface to send the request to*/
 			if(sr_prefix_match(sr, req->ip, char_outgoing_iface) == false){
-				Debug("No matching interface \n");
+				/*Debug("No matching interface \n");*/
 				struct sr_arpreq *temp = req;
 				send_icmp_t3_replies(sr, req->packets, 0);
 				req = req->next;
@@ -39,7 +39,7 @@ void sr_arpcache_sweepreqs(struct sr_instance *sr) {
 				continue;
 			}
 			struct sr_if* outgoing_iface = sr_get_interface(sr,char_outgoing_iface);
-			if(outgoing_iface == 0){ Debug("sr_arpcache_sweepreqs<5: get_interface returned null"); }
+			/*if(outgoing_iface == 0){ Debug("sr_arpcache_sweepreqs<5: get_interface returned null"); }*/
 			/*Try resending the request */
 			arp_pack = build_arp_packet(arp_op_request, outgoing_iface->addr, outgoing_iface->ip, BCAST_MAC_ADDR, req->ip);
 			eth_pack = build_eth_frame((uint8_t*)BCAST_MAC_ADDR,outgoing_iface->addr,ethertype_arp, arp_pack, sizeof(struct sr_arp_hdr));
@@ -55,7 +55,7 @@ void sr_arpcache_sweepreqs(struct sr_instance *sr) {
 			req = req->next;
 			/*remove the request from the queue*/
 			sr_arpreq_destroy(&(sr->cache), temp);
-			Debug("Request sent 5 times, destroying request \n");
+			/*Debug("Request sent 5 times, destroying request \n");*/
 		}
 	}
 }

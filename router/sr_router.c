@@ -90,7 +90,7 @@ void sr_handlepacket(struct sr_instance* sr,
   assert(packet);
   assert(interface);
 
-  printf("*** -> Received packet of length %d \n",len);
+  /*printf("*** -> Received packet of length %d \n",len);*/
   convert_to_host(packet);
   /* function for comparing checksum before parsing packet */
  
@@ -111,10 +111,10 @@ void sr_handlepacket(struct sr_instance* sr,
 	if(rc == RC_INSERTED_INTO_ARP_CACHE){
 		return;
 	} else if(rc == RC_ARP_NOT_DESTINED_TO_ROUTER){
-		Debug("Dropping ARP not destined for router.");
+		/*Debug("Dropping ARP not destined for router.");*/
 		return;
 	} else if (rc == RC_GENERAL_ERROR){
-		Debug("Dropping ARP with invalid op.");
+		/*Debug("Dropping ARP with invalid op.");*/
 		return;		
 	}
 	out_eth_type = ethertype_arp;
@@ -136,11 +136,11 @@ void sr_handlepacket(struct sr_instance* sr,
 		struct sr_if* outgoing_if = NULL;
 		if(sr_prefix_match(sr, out_dest_ip, outgoing)){
 			outgoing_if = sr_get_interface(sr, outgoing);
-			if(outgoing_if == 0){Debug("HandlePacket: outgoing if = 0");}
+			/*if(outgoing_if == 0){Debug("HandlePacket: outgoing if = 0");}*/
 			out_eth_pack = build_eth_frame(out_client_mac->mac,outgoing_if->addr,out_eth_type, out_eth_payload, out_eth_payload_len);
 			sr_send_packet(sr, out_eth_pack, out_eth_pack_len, outgoing);
 		} else {
-			Debug("No prefix match found: dropping packet");
+			/*Debug("No prefix match found: dropping packet");*/
 		}
 	}
 	
@@ -173,7 +173,7 @@ int sr_process_ip_payload(struct sr_instance* sr, char* interface, uint8_t* in_i
 
 
 	if(verify_ip_cksum(in_ip_packet) == false){
-		Debug("IP checksum failed. Dropping packet. \n");
+		/*Debug("IP checksum failed. Dropping packet. \n");*/
 		return RC_CHKSUM_FAILED;
     }
 	
@@ -187,11 +187,11 @@ int sr_process_ip_payload(struct sr_instance* sr, char* interface, uint8_t* in_i
 		uint8_t* icmp_pack = NULL;
 		uint32_t out_ip_packet_src_ip;
 		
-		if(interface_if == 0){Debug("HandlePacket interface not found.");}
+		/*if(interface_if == 0){Debug("HandlePacket interface not found.");}*/
 		/* Build the ICMP packet depending on the circumstances */
 		if(in_ip_hdr->ip_ttl <= 1){ /* If the packet is out of hops */
 			/* Time exceeded */
-			printf("*** -> IP Packet, out of hops \n");
+			/*printf("*** -> IP Packet, out of hops \n");*/
 			icmp_pack = build_icmp_t3_packet(11,0, in_ip_packet);
 			out_ip_payload_len = sizeof(struct sr_icmp_t3_hdr);
 			if(is_router_ip(sr, in_ip_hdr_ip_dst)){ 
@@ -203,12 +203,12 @@ int sr_process_ip_payload(struct sr_instance* sr, char* interface, uint8_t* in_i
 			}
 		} else if(in_ip_hdr->ip_p != ip_protocol_icmp){ /* Received a non ICMP packet destined for a router interface */
 			/* Port unreachable */
-			printf("*** -> IP Packet, TCP/UDP Payload \n");
+			/*printf("*** -> IP Packet, TCP/UDP Payload \n");*/
 			icmp_pack = build_icmp_t3_packet(3,3, in_ip_packet);
 			out_ip_payload_len = sizeof(struct sr_icmp_t3_hdr);
 			out_ip_packet_src_ip = in_ip_hdr_ip_dst;
 		} else { /* Received an ICMP packet destined for a router interface */
-			printf("*** -> IP Packet, ICMP destined for router \n");
+			/*printf("*** -> IP Packet, ICMP destined for router \n");*/
 			sr_icmp_hdr_t* icmp_hdr = parse_icmp_packet(in_ip_payload);
 			if(icmp_hdr->icmp_type == icmp_type_echo_request){
 				uint8_t* echo_reply_payload = NULL;
@@ -216,7 +216,7 @@ int sr_process_ip_payload(struct sr_instance* sr, char* interface, uint8_t* in_i
 				int icmp_len = in_ip_packet_len - sizeof(sr_ip_hdr_t);
 				int icmp_payload_len =  icmp_len - sizeof(struct sr_icmp_hdr);
 				if(verify_icmp_cksum(in_ip_payload, icmp_len) == false){
-					Debug("ICMP checksum failed. Dropping packet. \n");
+					/*Debug("ICMP checksum failed. Dropping packet. \n");*/
 					return RC_CHKSUM_FAILED;
 				}
 				/* Echo reply */
@@ -234,7 +234,7 @@ int sr_process_ip_payload(struct sr_instance* sr, char* interface, uint8_t* in_i
 		
 		if(icmp_pack != NULL){free(icmp_pack);}
 	} else { /* Packet is not destined to the router */
-		printf("*** -> IP Packet not destined for router \n");
+		/*printf("*** -> IP Packet not destined for router \n");*/
 		*out_ip_packet = malloc(in_ip_packet_len);
 		memcpy(*out_ip_packet, in_ip_packet, in_ip_packet_len);
 		*out_dest_ip = in_ip_hdr_ip_dst;
@@ -276,7 +276,7 @@ int sr_process_arp_payload(struct sr_instance* sr, uint8_t* in_arp_packet, int i
 	/*If the incoming packet is from another source.*/
 	if(arp_hdr->ar_op == arp_op_request){ /*Reply to the request*/
 		unsigned char* router_mac = (unsigned char*)is_router_ip(sr, arp_hdr->ar_tip);
-		printf("*** -> ARP Request Packet \n");
+		/*printf("*** -> ARP Request Packet \n");*/
 		if(router_mac != NULL){/*Only respond to requests destined to the router.*/
 			*out_arp_packet = build_arp_packet(arp_op_reply, router_mac, arp_hdr->ar_tip, arp_hdr->ar_sha,
 							arp_hdr->ar_sip);
@@ -286,20 +286,20 @@ int sr_process_arp_payload(struct sr_instance* sr, uint8_t* in_arp_packet, int i
 			return RC_ARP_NOT_DESTINED_TO_ROUTER;
 		}
 	} else if(arp_hdr->ar_op == arp_op_reply){/*Insert the reply into the cache*/
-		printf("*** -> ARP Reply Packet \n");
+		/*printf("*** -> ARP Reply Packet \n");*/
 		if(is_router_ip(sr, arp_hdr->ar_tip)){/*Only cache replies destined to the router.*/
 			struct sr_arpreq *requests = sr_arpcache_insert(&(sr->cache), arp_hdr->ar_sha, arp_hdr->ar_sip);
-			printf("*** -> ARP Reply Packet: inserting sip:%x, sha:",arp_hdr->ar_sip);
+			/*printf("*** -> ARP Reply Packet: inserting sip:%x, sha:",arp_hdr->ar_sip);
 			print_addr_eth(arp_hdr->ar_sha);
-			printf("\n");
+			printf("\n");*/
 			struct sr_packet *next_packet = requests->packets;
 			while(next_packet != NULL){
-				Debug("Next Received Packet is an old, queued up packet: \n");
+				/*Debug("Next Received Packet is an old, queued up packet: \n");*/
 				
 				if(convert_to_network(next_packet->buf) != 0){
-					Debug("Conversion failed.\n");
+					/*Debug("Conversion failed.\n");*/
 				}
-				print_hdrs(next_packet->buf,next_packet->len);
+				/*print_hdrs(next_packet->buf,next_packet->len);*/
 				sr_handlepacket(sr, next_packet->buf, next_packet->len, next_packet->iface);
 
 				next_packet = next_packet->next;

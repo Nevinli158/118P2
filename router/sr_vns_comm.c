@@ -590,8 +590,8 @@ int sr_send_packet(struct sr_instance* sr /* borrowed */,
 	}
 	
 	convert_to_network(buf);
-	printf("Sending Packet out on interface:%s, len:%d \n", iface,len);
-	print_hdrs(buf,len);
+	/*printf("Sending Packet out on interface:%s, len:%d \n", iface,len);
+	print_hdrs(buf,len);*/
 	
 	/* Sanity check on checksums */
 	in_eth_pack = parse_eth_frame(buf, &in_ether_payload);

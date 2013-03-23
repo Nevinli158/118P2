@@ -5,3 +5,7 @@ packet processing a lot simpler.
    To verify checksums, we made functions to compute the checksum manually and 
 compare them against the checksum in the headers. We implemented a verify 
 checksum function for each packet type that contains a checksum header. 
+   We decided to reuse handlepacket to deal with packets that have been queued 
+up waiting for an ARP reply. In order to accomodate this, we do some postprocessing
+on the packets in send_packet, where we decrease the TTL and recompute the checksums
+if necessary.
