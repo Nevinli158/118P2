@@ -9,3 +9,6 @@ checksum function for each packet type that contains a checksum header.
 up waiting for an ARP reply. In order to accomodate this, we do some postprocessing
 on the packets in send_packet, where we decrease the TTL and recompute the checksums
 if necessary.
+   Note that we tested (among other things) the ping, traceroute, wget
+test cases as shown on the website, and our router passes the 3 cases 
+so if you run into any unexpected errors, please retry the test case.
