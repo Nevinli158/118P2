@@ -604,6 +604,8 @@ int sr_send_packet(struct sr_instance* sr /* borrowed */,
 				in_icmp_hdr = parse_icmp_t0_packet(in_ip_payload, &in_icmp_payload);
 				in_icmp_hdr->icmp_sum = 0;
 				in_icmp_hdr->icmp_sum = cksum (in_ip_payload, ip_payload_len);
+			} else if(in_icmp_hdr->icmp_type == 11 && is_router_ip(sr, in_ip_hdr->ip_src)){
+				int x = 4;
 			}
 		}
 		in_ip_hdr->ip_sum = 0;

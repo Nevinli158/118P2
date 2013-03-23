@@ -190,11 +190,11 @@ int sr_process_ip_payload(struct sr_instance* sr, char* interface, uint8_t* in_i
 		
 		if(interface_if == 0){Debug("HandlePacket interface not found.");}
 		/* Build the ICMP packet depending on the circumstances */
-		if(in_ip_hdr->ip_ttl <= 0){ /* If the packet is out of hops */
+		if(in_ip_hdr->ip_ttl <= 1){ /* If the packet is out of hops */
 			/* Time exceeded */
 			printf("*** -> IP Packet, out of hops \n");
-			icmp_pack = build_icmp_packet(11,0);
-			out_ip_payload_len = sizeof(struct sr_icmp_hdr);
+			icmp_pack = build_icmp_t3_packet(11,0, in_ip_packet);
+			out_ip_payload_len = sizeof(struct sr_icmp_t3_hdr);
 			if(is_router_ip(sr, in_ip_hdr_ip_dst)){ 
 				/* If destined to a router ip, reply from that router ip */
 				out_ip_packet_src_ip = in_ip_hdr_ip_dst;
@@ -205,7 +205,7 @@ int sr_process_ip_payload(struct sr_instance* sr, char* interface, uint8_t* in_i
 		} else if(in_ip_hdr->ip_p != ip_protocol_icmp){ /* Received a non ICMP packet destined for a router interface */
 			/* Port unreachable */
 			printf("*** -> IP Packet, TCP/UDP Payload \n");
-			icmp_pack = build_icmp_t3_packet(3,3, in_ip_payload);
+			icmp_pack = build_icmp_t3_packet(3,3, in_ip_packet);
 			out_ip_payload_len = sizeof(struct sr_icmp_t3_hdr);
 			out_ip_packet_src_ip = in_ip_hdr_ip_dst;
 		} else { /* Received an ICMP packet destined for a router interface */
