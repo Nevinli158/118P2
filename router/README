@@ -1,0 +1,7 @@
+   To handle the processing of packets, we created functions to parse the raw 
+packet buffers into the structs. We also made packet building functions that 
+fill in the packet fields to construct a new raw packet. These functions made 
+packet processing a lot simpler. 
+   To verify checksums, we made functions to compute the checksum manually and 
+compare them against the checksum in the headers. We implemented a verify 
+checksum function for each packet type that contains a checksum header. 
